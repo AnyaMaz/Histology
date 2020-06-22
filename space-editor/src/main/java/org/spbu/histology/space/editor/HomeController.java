@@ -1,59 +1,37 @@
 package org.spbu.histology.space.editor;
 
+import javafx.beans.property.*;
+import javafx.collections.*;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.geometry.Point3D;
+import javafx.scene.control.*;
+import javafx.stage.FileChooser;
+import javafx.util.Callback;
+import org.openide.LifecycleManager;
+import org.openide.awt.*;
+import org.openide.util.Lookup;
+import org.openide.util.NbBundle;
+import org.spbu.histology.model.Cell;
+import org.spbu.histology.model.*;
+import org.spbu.histology.shape.information.CellInformationInitialization;
+import org.spbu.histology.shape.information.PartInformationInitialization;
+
+import javax.swing.filechooser.FileSystemView;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.*;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.concurrent.ConcurrentHashMap;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
-import javafx.scene.control.*;
-import org.openide.awt.ActionID;
-import org.openide.awt.ActionReference;
-import org.openide.awt.ActionRegistration;
-import org.openide.util.NbBundle;
-import org.spbu.histology.shape.information.CellInformationInitialization;
-import javafx.collections.MapChangeListener;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.collections.ObservableMap;
-import javafx.geometry.Point3D;
-import javafx.scene.paint.Color;
-import javafx.stage.FileChooser;
-import javafx.util.Callback;
-import javafx.application.Platform;
-import javax.swing.filechooser.FileSystemView;
-import org.openide.LifecycleManager;
-import org.openide.util.Lookup;
-import org.spbu.histology.model.Cell;
-import org.spbu.histology.model.Histion;
-import org.spbu.histology.model.HistionManager;
-import org.spbu.histology.model.HistologyObject;
-import org.spbu.histology.model.Line;
-import org.spbu.histology.model.LineEquations;
-import org.spbu.histology.model.Names;
-import org.spbu.histology.model.Node;
-import org.spbu.histology.model.Part;
-import org.spbu.histology.model.RecurrenceShifts;
-import org.spbu.histology.model.TetgenPoint;
-import org.spbu.histology.model.TwoIntegers;
-import org.spbu.histology.shape.information.PartInformationInitialization;
 
 public class HomeController implements Initializable {
 
-    private HistionManager hm = null;
+    protected HistionManager hm = null;
+
+    public HomeController() {
+    }
 
     @FXML
     private TreeView<HistologyObject<?>> shapeTreeView;
@@ -82,81 +60,80 @@ public class HomeController implements Initializable {
         alert.showAndWait();
     }
 
-
     private final MapChangeListener<Integer, Part> partListener
             = (change) -> {
-                if (change.wasRemoved() && change.wasAdded()) {
-                    Part p = (Part) change.getValueAdded();
-                    Part removedPart = (Part) change.getValueRemoved();
-                    if (!(p.getName().equals(removedPart.getName()))) {
-                        partTreeItemMap.get(p.getId()).getValue().setName(p.getName());
-                        shapeTreeView.setCellFactory(new Callback<TreeView<HistologyObject<?>>, TreeCell<HistologyObject<?>>>() {
-                            @Override
-                            public TreeCell<HistologyObject<?>> call(TreeView<HistologyObject<?>> p) {
-                                return new TreeCellImpl();
-                            }
-                        });
+        if (change.wasRemoved() && change.wasAdded()) {
+            Part p = (Part) change.getValueAdded();
+            Part removedPart = (Part) change.getValueRemoved();
+            if (!(p.getName().equals(removedPart.getName()))) {
+                partTreeItemMap.get(p.getId()).getValue().setName(p.getName());
+                shapeTreeView.setCellFactory(new Callback<TreeView<HistologyObject<?>>, TreeCell<HistologyObject<?>>>() {
+                    @Override
+                    public TreeCell<HistologyObject<?>> call(TreeView<HistologyObject<?>> p) {
+                        return new TreeCellImpl();
                     }
-                } else if (change.wasAdded()) {
-                    Part addedPart = (Part) change.getValueAdded();
-                    PartTreeItem pti = new PartTreeItem(addedPart);
-                    histion.getChildren().forEach(c -> {
-                        if (c.getValue().getId() == addedPart.getCellId()) {
-                            c.getChildren().add(pti);
-                        }
-                    });
-                    partTreeItemMap.put(addedPart.getId(), pti);
-                } else if (change.wasRemoved()) {
-                    Part removedPart = (Part) change.getValueRemoved();
-                    histion.getChildren().forEach(c -> {
-                        if (c.getValue().getId() == removedPart.getCellId()) {
-                            c.getChildren().remove(partTreeItemMap.get(removedPart.getId()));
-                        }
-                    });
-                    partTreeItemMap.remove(removedPart.getId());
+                });
+            }
+        } else if (change.wasAdded()) {
+            Part addedPart = (Part) change.getValueAdded();
+            PartTreeItem pti = new PartTreeItem(addedPart);
+            histion.getChildren().forEach(c -> {
+                if (c.getValue().getId() == addedPart.getCellId()) {
+                    c.getChildren().add(pti);
                 }
-            };
+            });
+            partTreeItemMap.put(addedPart.getId(), pti);
+        } else if (change.wasRemoved()) {
+            Part removedPart = (Part) change.getValueRemoved();
+            histion.getChildren().forEach(c -> {
+                if (c.getValue().getId() == removedPart.getCellId()) {
+                    c.getChildren().remove(partTreeItemMap.get(removedPart.getId()));
+                }
+            });
+            partTreeItemMap.remove(removedPart.getId());
+        }
+    };
 
     private final MapChangeListener<Integer, Cell> cellListener
             = (change) -> {
 
-                if (change.wasRemoved() && change.wasAdded()) {
-                    Cell c = (Cell) change.getValueAdded();
-                    Cell removedShape = (Cell) change.getValueRemoved();
-                    if (!(c.getName().equals(removedShape.getName()))) {
-                        cellTreeItemMap.get(c.getId()).getValue().setName(c.getName());
-                        shapeTreeView.setCellFactory(new Callback<TreeView<HistologyObject<?>>, TreeCell<HistologyObject<?>>>() {
-                            @Override
-                            public TreeCell<HistologyObject<?>> call(TreeView<HistologyObject<?>> p) {
-                                return new TreeCellImpl();
-                            }
-                        });
+        if (change.wasRemoved() && change.wasAdded()) {
+            Cell c = (Cell) change.getValueAdded();
+            Cell removedShape = (Cell) change.getValueRemoved();
+            if (!(c.getName().equals(removedShape.getName()))) {
+                cellTreeItemMap.get(c.getId()).getValue().setName(c.getName());
+                shapeTreeView.setCellFactory(new Callback<TreeView<HistologyObject<?>>, TreeCell<HistologyObject<?>>>() {
+                    @Override
+                    public TreeCell<HistologyObject<?>> call(TreeView<HistologyObject<?>> p) {
+                        return new TreeCellImpl();
                     }
-                    removedShape.getItemMap().removeListener(partListener);
-                    c.getItemMap().addListener(partListener);
+                });
+            }
+            removedShape.getItemMap().removeListener(partListener);
+            c.getItemMap().addListener(partListener);
 
-                } else if (change.wasAdded()) {
-                    Cell addedCell = (Cell) change.getValueAdded();
-                    CellTreeItem cti = new CellTreeItem(addedCell);
-                    histion.getChildren().add(cti);
-                    cellTreeItemMap.put(addedCell.getId(), cti);
-                    addedCell.getItemMap().addListener(partListener);
-                    addedCell.getItems().forEach(p -> {
-                        PartTreeItem pti = new PartTreeItem(p);
-                        histion.getChildren().forEach(c -> {
-                            if (c.getValue().getId() == addedCell.getId()) {
-                                c.getChildren().add(pti);
-                            }
-                        });
-                        partTreeItemMap.put(p.getId(), pti);
-                    });
-                } else if (change.wasRemoved()) {
-                    Cell removedShape = (Cell) change.getValueRemoved();
-                    histion.getChildren().remove(cellTreeItemMap.get(removedShape.getId()));
-                    cellTreeItemMap.remove(removedShape.getId());
-                    removedShape.getItemMap().removeListener(partListener);
-                }
-            };
+        } else if (change.wasAdded()) {
+            Cell addedCell = (Cell) change.getValueAdded();
+            CellTreeItem cti = new CellTreeItem(addedCell);
+            histion.getChildren().add(cti);
+            cellTreeItemMap.put(addedCell.getId(), cti);
+            addedCell.getItemMap().addListener(partListener);
+            addedCell.getItems().forEach(p -> {
+                PartTreeItem pti = new PartTreeItem(p);
+                histion.getChildren().forEach(c -> {
+                    if (c.getValue().getId() == addedCell.getId()) {
+                        c.getChildren().add(pti);
+                    }
+                });
+                partTreeItemMap.put(p.getId(), pti);
+            });
+        } else if (change.wasRemoved()) {
+            Cell removedShape = (Cell) change.getValueRemoved();
+            histion.getChildren().remove(cellTreeItemMap.get(removedShape.getId()));
+            cellTreeItemMap.remove(removedShape.getId());
+            removedShape.getItemMap().removeListener(partListener);
+        }
+    };
 
     public abstract class AbstractTreeItem extends TreeItem<HistologyObject<?>> {
 
@@ -209,7 +186,7 @@ public class HomeController implements Initializable {
         return new Node(x, y, z);
     }
 
-   public Node intersect2(Line line1, Line line2) {
+    public Node intersect2(Line line1, Line line2) {
         double x, y, z;
         x = 10000;
         y = 10000;
@@ -361,7 +338,7 @@ public class HomeController implements Initializable {
                     writer.newLine();
                     writer.write(RecurrenceShifts.getZShift() + "");
                     writer.newLine();
-                    
+
                     writer.write(hm.getHistionMap().get(0).getItems().size() + "");
                     writer.newLine();
 
@@ -443,331 +420,13 @@ public class HomeController implements Initializable {
             loadHistion.setText("Загрузить гистион");
             loadHistion.setOnAction(event -> {
                 histionMenu.hide();
-                /*FileChooser fileChooser = new FileChooser();
-                fileChooser.setTitle("Open Resource File");
-                FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
-                fileChooser.getExtensionFilters().add(extFilter);
-                String userDirectoryString = FileSystemView.getFileSystemView().getDefaultDirectory().getPath();
-                //System.out.println(userDirectoryString);
-                userDirectoryString += "\\HistologyApp\\Histions";
-                File userDirectory = new File(userDirectoryString);
-                if (!userDirectory.exists()) {
-                    userDirectory.mkdirs();
-                }
-                fileChooser.setInitialDirectory(userDirectory);
-                File selectedFile = fileChooser.showOpenDialog(null);
-
-                try {
-                    Histion main = hm.getHistionMap().get(0);
-                    BufferedReader br = new BufferedReader(new FileReader(userDirectoryString + "\\" + selectedFile.getName()));
-                    String line = br.readLine();
-
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    main.setXCoordinate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    main.setYCoordinate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    main.setZCoordinate(Double.parseDouble(line));
-                    
-                    line = br.readLine();
-                    RecurrenceShifts.setXShift(Double.parseDouble(line));
-                    line = br.readLine();
-                    RecurrenceShifts.setZShift(Double.parseDouble(line));
-                    
-                    line = br.readLine();
-                    int cellNum = Integer.parseInt(line);
-                    for (int i = 0; i < cellNum; i++) {
-                        ObservableList<ArrayList<Integer>> facetData = FXCollections.observableArrayList();
-                        Cell c = new Cell("Name", 0, 0, 0, 0, 0, FXCollections.observableArrayList(),
-                                Color.BLUE, Color.LIGHTBLUE, 0, true);
-                        double r, g, b;
-                        line = br.readLine();
-
-                        String name = line;
-                        name = name.substring(name.indexOf("<") + 1, name.lastIndexOf(">"));
-                        int count = 1;
-                        while (Names.containsCellName(name)) {
-                            name = line;
-                            name = name.substring(name.indexOf("<") + 1, name.lastIndexOf(">"));
-                            name += "(" + count + ")";
-                            count++;
-                        }
-                        c.setName("Клетка <" + name + ">");
-
-                        line = br.readLine();
-                        c.setXRotate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        c.setYRotate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        c.setXCoordinate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        c.setYCoordinate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        c.setZCoordinate(Double.parseDouble(line));
-
-                        line = br.readLine();
-                        r = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        g = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        b = Double.parseDouble(line);
-                        c.setDiffuseColor(Color.color(r, g, b));
-
-                        line = br.readLine();
-                        r = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        g = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        b = Double.parseDouble(line);
-                        c.setSpecularColor(Color.color(r, g, b));
-
-                        line = br.readLine();
-                        c.setShow(Boolean.parseBoolean(line));
-
-                        line = br.readLine();
-                        int partNum = Integer.parseInt(line);
-
-                        ArrayList<TetgenPoint> pd = new ArrayList<>();
-                        int num = 1;
-                        for (int j = 0; j < partNum; j++) {
-                            ObservableList<TetgenPoint> pointData = FXCollections.observableArrayList();
-                            Part p = new Part("Слой", FXCollections.observableArrayList(), c.getId());
-                            line = br.readLine();
-                            //p.setName(line);
-
-                            name = line;
-                            name = name.substring(name.indexOf("<") + 1, name.lastIndexOf(">"));
-                            p.setName("Слой <" + name + ">");
-
-                            line = br.readLine();
-                            int pointNum = Integer.parseInt(line);
-                            for (int q = 0; q < pointNum; q++) {
-                                line = br.readLine();
-                                r = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                                line = line.substring(line.indexOf(" ") + 1, line.length());
-                                g = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                                line = line.substring(line.indexOf(" ") + 1, line.length());
-                                b = Double.parseDouble(line);
-                                pointData.add(new TetgenPoint(q + 1, r, g, b));
-                                pd.add(new TetgenPoint(num, r, g, b));
-                                num++;
-                            }
-                            p.setPointData(pointData);
-                            p.setAvgNode();
-                            c.addChild(p);
-                        }
-                        line = br.readLine();
-                        int facetNum = Integer.parseInt(line);
-                        for (int j = 0; j < facetNum; j++) {
-                            ArrayList<Integer> list = new ArrayList<>();
-                            line = br.readLine();
-                            while (line.contains(" ")) {
-                                list.add(Integer.parseInt(line.substring(0, line.indexOf(" "))));
-                                line = line.substring(line.indexOf(" ") + 1, line.length());
-                            }
-                            list.add(Integer.parseInt(line));
-                            facetData.add(list);
-                        }
-                        c.setFacetData(facetData);
-
-                        ArrayList<TwoIntegers> lineList = new ArrayList<>();
-                        for (ArrayList<Integer> f : facetData) {
-                            for (int j = 1; j < f.size(); j++) {
-                                TwoIntegers ti = new TwoIntegers(j, f.get(j - 1), f.get(j));
-                                if (!lineList.contains(ti)) {
-                                    lineList.add(ti);
-                                }
-                            }
-                            TwoIntegers ti = new TwoIntegers(f.size(), f.get(f.size() - 1), f.get(0));
-                            if (!lineList.contains(ti)) {
-                                lineList.add(ti);
-                            }
-                        }
-
-                        ArrayList<Line> lines = new ArrayList<>();
-                        for (int j = 0; j < lineList.size(); j++) {
-
-                            TetgenPoint point1 = pd.get(lineList.get(j).getPoint1() - 1);
-                            TetgenPoint point2 = pd.get(lineList.get(j).getPoint2() - 1);
-                            if (Math.abs(point1.getY() - point2.getY()) < 0.0001) {
-                                lines.add(new Line(new org.spbu.histology.model.Node(point1.getX(), point1.getZ(), point1.getY()),
-                                        new org.spbu.histology.model.Node(point2.getX(), point2.getZ(), point2.getY())));
-                            }
-                        }
-                        LineEquations.addLine(c.getId(), lines);
-
-                        main.addChild(c);
-                        name = c.getName();
-                        Names.addCellName(name.substring(name.indexOf("<") + 1, name.lastIndexOf(">")));
-                    }
-                    br.close();
-                } catch (Exception ex) {
-                    System.out.println("error");
-                }*/
-
-                LoadHistionBox.display();
+                LoadModelService.displayHistion();
             });
             MenuItem loadCell = new MenuItem();
             loadCell.setText("Загрузить клетку");
             loadCell.setOnAction(event -> {
                 histionMenu.hide();
-                //LoadCellBox.display();
-                FileChooser fileChooser = new FileChooser();
-                fileChooser.setTitle("Open Resource File");
-                FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
-                fileChooser.getExtensionFilters().add(extFilter);
-                String userDirectoryString = FileSystemView.getFileSystemView().getDefaultDirectory().getPath();
-                //System.out.println(userDirectoryString);
-                userDirectoryString += "\\HistologyApp" + System.getProperty("sun.arch.data.model") + "\\Cells";
-                File userDirectory = new File(userDirectoryString);
-                if (!userDirectory.exists()) {
-                    userDirectory.mkdirs();
-                }
-                fileChooser.setInitialDirectory(userDirectory);
-                File selectedFile = fileChooser.showOpenDialog(null);
-
-                try {
-                    Histion main = hm.getHistionMap().get(0);
-                    BufferedReader br = new BufferedReader(new FileReader(userDirectoryString + "\\" + selectedFile.getName()));
-                    String line = br.readLine();
-
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    main.setXCoordinate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    main.setYCoordinate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    main.setZCoordinate(Double.parseDouble(line));
-                    line = br.readLine();
-                    int cellNum = Integer.parseInt(line);
-                    for (int i = 0; i < cellNum; i++) {
-                        ObservableList<ArrayList<Integer>> facetData = FXCollections.observableArrayList();
-                        Cell c = new Cell("Name", 0, 0, 0, 0, 0, FXCollections.observableArrayList(),
-                                Color.BLUE, Color.LIGHTBLUE, 0, true);
-                        double r, g, b;
-                        line = br.readLine();
-
-                        String name = line;
-                        name = name.substring(name.indexOf("<") + 1, name.lastIndexOf(">"));
-                        int count = 1;
-                        while (Names.containsCellName(name)) {
-                            name = line;
-                            name = name.substring(name.indexOf("<") + 1, name.lastIndexOf(">"));
-                            name += "(" + count + ")";
-                            count++;
-                        }
-                        c.setName("Клетка <" + name + ">");
-
-                        line = br.readLine();
-                        c.setXRotate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        c.setYRotate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        c.setXCoordinate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        c.setYCoordinate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        c.setZCoordinate(Double.parseDouble(line));
-
-                        line = br.readLine();
-                        r = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        g = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        b = Double.parseDouble(line);
-                        c.setDiffuseColor(Color.color(r, g, b));
-
-                        line = br.readLine();
-                        r = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        g = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                        line = line.substring(line.indexOf(" ") + 1, line.length());
-                        b = Double.parseDouble(line);
-                        c.setSpecularColor(Color.color(r, g, b));
-
-                        line = br.readLine();
-                        c.setShow(Boolean.parseBoolean(line));
-
-                        line = br.readLine();
-                        int partNum = Integer.parseInt(line);
-
-                        ArrayList<TetgenPoint> pd = new ArrayList<>();
-                        int num = 1;
-                        for (int j = 0; j < partNum; j++) {
-                            ObservableList<TetgenPoint> pointData = FXCollections.observableArrayList();
-                            Part p = new Part("Слой", FXCollections.observableArrayList(), c.getId());
-                            line = br.readLine();
-
-                            name = line;
-                            name = name.substring(name.indexOf("<") + 1, name.lastIndexOf(">"));
-                            p.setName("Слой <" + name + ">");
-
-                            line = br.readLine();
-                            int pointNum = Integer.parseInt(line);
-                            for (int q = 0; q < pointNum; q++) {
-                                line = br.readLine();
-                                r = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                                line = line.substring(line.indexOf(" ") + 1, line.length());
-                                g = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                                line = line.substring(line.indexOf(" ") + 1, line.length());
-                                b = Double.parseDouble(line);
-                                pointData.add(new TetgenPoint(q + 1, r, g, b));
-                                pd.add(new TetgenPoint(num, r, g, b));
-                                num++;
-                            }
-                            p.setPointData(pointData);
-                            p.setAvgNode();
-                            c.addChild(p);
-                        }
-                        line = br.readLine();
-                        int facetNum = Integer.parseInt(line);
-                        for (int j = 0; j < facetNum; j++) {
-                            ArrayList<Integer> list = new ArrayList<>();
-                            line = br.readLine();
-                            while (line.contains(" ")) {
-                                list.add(Integer.parseInt(line.substring(0, line.indexOf(" "))));
-                                line = line.substring(line.indexOf(" ") + 1, line.length());
-                            }
-                            list.add(Integer.parseInt(line));
-                            facetData.add(list);
-                        }
-                        c.setFacetData(facetData);
-
-                        ArrayList<TwoIntegers> lineList = new ArrayList<>();
-                        for (ArrayList<Integer> f : facetData) {
-                            for (int j = 1; j < f.size(); j++) {
-                                TwoIntegers ti = new TwoIntegers(j, f.get(j - 1), f.get(j));
-                                if (!lineList.contains(ti)) {
-                                    lineList.add(ti);
-                                }
-                            }
-                            TwoIntegers ti = new TwoIntegers(f.size(), f.get(f.size() - 1), f.get(0));
-                            if (!lineList.contains(ti)) {
-                                lineList.add(ti);
-                            }
-                        }
-
-                        ArrayList<Line> lines = new ArrayList<>();
-                        for (int j = 0; j < lineList.size(); j++) {
-
-                            TetgenPoint point1 = pd.get(lineList.get(j).getPoint1() - 1);
-                            TetgenPoint point2 = pd.get(lineList.get(j).getPoint2() - 1);
-                            if (Math.abs(point1.getY() - point2.getY()) < 0.0001) {
-                                lines.add(new Line(new org.spbu.histology.model.Node(point1.getX(), point1.getZ(), point1.getY()),
-                                        new org.spbu.histology.model.Node(point2.getX(), point2.getZ(), point2.getY())));
-                            }
-                        }
-                        LineEquations.addLine(c.getId(), lines);
-
-                        main.addChild(c);
-                        name = c.getName();
-                        Names.addCellName(name.substring(name.indexOf("<") + 1, name.lastIndexOf(">")));
-                    }
-                    br.close();
-                } catch (Exception ex) {
-                    System.out.println("error");
-                }
+                LoadModelService.displayCell();
             });
             MenuItem addCell = new MenuItem();
             addCell.setText("Добавить клетку");
@@ -928,7 +587,6 @@ public class HomeController implements Initializable {
                         });
                         hm.getHistionMap().get(0).addChild(c);
                     }*/
-                    
                     double deltaX = xSpace.get();
                     double deltaY = ySpace.get();
                     double deltaZ = zSpace.get();
@@ -952,10 +610,9 @@ public class HomeController implements Initializable {
                                 Cell newCell = new Cell(c, newHistion.getId());
                                 c.getItems().forEach(p -> {
 
-
                                     Part newP = new Part(p.getId(), p);
                                     newP.getPointData().clear();
-                                    p.getPointData().forEach(point ->{
+                                    p.getPointData().forEach(point -> {
                                         TetgenPoint newPoint = new TetgenPoint(point);
                                         newPoint.setX(point.getX() + deltaX + xShift.get());
                                         newPoint.setZ(point.getZ() + zShift.get());
@@ -964,13 +621,10 @@ public class HomeController implements Initializable {
                                     newP.setAvgNode();
                                     newCell.addChild(newP);
 
-
                                 });
-
 
                                 newCell.setXCoordinate(newCell.getXCoordinate() + deltaX + xShift.get());
                                 newCell.setZCoordinate(newCell.getZCoordinate() + zShift.get());
-
 
                                 newHistion.addChild(newCell);
                             });
@@ -991,7 +645,7 @@ public class HomeController implements Initializable {
 
                                     Part newP = new Part(p.getId(), p);
                                     newP.getPointData().clear();
-                                    p.getPointData().forEach(point ->{
+                                    p.getPointData().forEach(point -> {
                                         TetgenPoint newPoint = new TetgenPoint(point);
                                         newPoint.setX(point.getX() - deltaX - xShift.get());
                                         newPoint.setZ(point.getZ() - zShift.get());
@@ -1000,13 +654,10 @@ public class HomeController implements Initializable {
                                     newP.setAvgNode();
                                     newCell.addChild(newP);
 
-
                                 });
-
 
                                 newCell.setXCoordinate(newCell.getXCoordinate() - deltaX - xShift.get());
                                 newCell.setZCoordinate(newCell.getZCoordinate() - zShift.get());
-
 
                                 newHistion.addChild(newCell);
                             });
@@ -1031,10 +682,9 @@ public class HomeController implements Initializable {
                                 Cell newCell = new Cell(c, newHistion.getId());
                                 c.getItems().forEach(p -> {
 
-
                                     Part newP = new Part(p.getId(), p);
                                     newP.getPointData().clear();
-                                    p.getPointData().forEach(point ->{
+                                    p.getPointData().forEach(point -> {
                                         TetgenPoint newPoint = new TetgenPoint(point);
                                         newPoint.setY(point.getY() + deltaY);
                                         newP.getPointData().add(newPoint);
@@ -1042,9 +692,7 @@ public class HomeController implements Initializable {
                                     newP.setAvgNode();
                                     newCell.addChild(newP);
 
-
                                 });
-
 
                                 newCell.setYCoordinate(newCell.getYCoordinate() + deltaY);
 
@@ -1066,7 +714,7 @@ public class HomeController implements Initializable {
 
                                     Part newP = new Part(p.getId(), p);
                                     newP.getPointData().clear();
-                                    p.getPointData().forEach(point ->{
+                                    p.getPointData().forEach(point -> {
                                         TetgenPoint newPoint = new TetgenPoint(point);
                                         newPoint.setY(point.getY() - deltaY);
                                         newP.getPointData().add(newPoint);
@@ -1074,13 +722,9 @@ public class HomeController implements Initializable {
                                     newP.setAvgNode();
                                     newCell.addChild(newP);
 
-
                                 });
 
-
                                 newCell.setYCoordinate(newCell.getYCoordinate() - deltaY);
-
-
 
                                 newHistion.addChild(newCell);
                             });
@@ -1101,7 +745,7 @@ public class HomeController implements Initializable {
 
                                     Part newP = new Part(p.getId(), p);
                                     newP.getPointData().clear();
-                                    p.getPointData().forEach(point ->{
+                                    p.getPointData().forEach(point -> {
                                         TetgenPoint newPoint = new TetgenPoint(point);
                                         newPoint.setZ(point.getZ() + deltaZ);
                                         newP.getPointData().add(newPoint);
@@ -1109,15 +753,9 @@ public class HomeController implements Initializable {
                                     newP.setAvgNode();
                                     newCell.addChild(newP);
 
-
                                 });
 
-
-
                                 newCell.setZCoordinate(newCell.getZCoordinate() + deltaZ);
-
-
-
 
                                 newHistion.addChild(newCell);
                             });
@@ -1135,7 +773,7 @@ public class HomeController implements Initializable {
 
                                     Part newP = new Part(p.getId(), p);
                                     newP.getPointData().clear();
-                                    p.getPointData().forEach(point ->{
+                                    p.getPointData().forEach(point -> {
                                         TetgenPoint newPoint = new TetgenPoint(point);
                                         newPoint.setZ(point.getZ() - deltaZ);
                                         newP.getPointData().add(newPoint);
@@ -1143,14 +781,9 @@ public class HomeController implements Initializable {
                                     newP.setAvgNode();
                                     newCell.addChild(newP);
 
-
                                 });
 
-
-
                                 newCell.setZCoordinate(newCell.getZCoordinate() - deltaZ);
-
-
 
                                 newHistion.addChild(newCell);
                             });
@@ -1175,7 +808,7 @@ public class HomeController implements Initializable {
 
                                         Part newP = new Part(p.getId(), p);
                                         newP.getPointData().clear();
-                                        p.getPointData().forEach(point ->{
+                                        p.getPointData().forEach(point -> {
                                             TetgenPoint newPoint = new TetgenPoint(point);
                                             newPoint.setX(point.getX() + deltaX + xShift.get());
                                             newPoint.setZ(point.getZ() + deltaZ + zShift.get());
@@ -1184,17 +817,10 @@ public class HomeController implements Initializable {
                                         newP.setAvgNode();
                                         newCell.addChild(newP);
 
-
                                     });
-
-
 
                                     newCell.setXCoordinate(newCell.getXCoordinate() + deltaX + xShift.get());
                                     newCell.setZCoordinate(newCell.getZCoordinate() + deltaZ + zShift.get());
-
-
-
-
 
                                     newHistion.addChild(newCell);
                                 });
@@ -1213,7 +839,7 @@ public class HomeController implements Initializable {
 
                                         Part newP = new Part(p.getId(), p);
                                         newP.getPointData().clear();
-                                        p.getPointData().forEach(point ->{
+                                        p.getPointData().forEach(point -> {
                                             TetgenPoint newPoint = new TetgenPoint(point);
                                             newPoint.setX(point.getX() + deltaX + xShift.get());
                                             newPoint.setZ(point.getZ() - deltaZ + zShift.get());
@@ -1222,14 +848,10 @@ public class HomeController implements Initializable {
                                         newP.setAvgNode();
                                         newCell.addChild(newP);
 
-
                                     });
-
 
                                     newCell.setXCoordinate(newCell.getXCoordinate() + deltaX + xShift.get());
                                     newCell.setZCoordinate(newCell.getZCoordinate() - deltaZ + zShift.get());
-
-
 
                                     newHistion.addChild(newCell);
                                 });
@@ -1254,7 +876,7 @@ public class HomeController implements Initializable {
 
                                         Part newP = new Part(p.getId(), p);
                                         newP.getPointData().clear();
-                                        p.getPointData().forEach(point ->{
+                                        p.getPointData().forEach(point -> {
                                             TetgenPoint newPoint = new TetgenPoint(point);
                                             newPoint.setX(point.getX() - deltaX - xShift.get());
                                             newPoint.setZ(point.getZ() + deltaZ - zShift.get());
@@ -1263,18 +885,10 @@ public class HomeController implements Initializable {
                                         newP.setAvgNode();
                                         newCell.addChild(newP);
 
-
                                     });
-
-
-
 
                                     newCell.setXCoordinate(newCell.getXCoordinate() - deltaX - xShift.get());
                                     newCell.setZCoordinate(newCell.getZCoordinate() + deltaZ - zShift.get());
-
-
-
-
 
                                     newHistion.addChild(newCell);
                                 });
@@ -1293,7 +907,7 @@ public class HomeController implements Initializable {
 
                                         Part newP = new Part(p.getId(), p);
                                         newP.getPointData().clear();
-                                        p.getPointData().forEach(point ->{
+                                        p.getPointData().forEach(point -> {
                                             TetgenPoint newPoint = new TetgenPoint(point);
                                             newPoint.setX(point.getX() - deltaX - xShift.get());
                                             newPoint.setZ(point.getZ() - deltaZ - zShift.get());
@@ -1302,16 +916,10 @@ public class HomeController implements Initializable {
                                         newP.setAvgNode();
                                         newCell.addChild(newP);
 
-
                                     });
-
-
-
 
                                     newCell.setXCoordinate(newCell.getXCoordinate() - deltaX - xShift.get());
                                     newCell.setZCoordinate(newCell.getZCoordinate() - deltaZ - zShift.get());
-
-
 
                                     newHistion.addChild(newCell);
                                 });
@@ -1340,7 +948,7 @@ public class HomeController implements Initializable {
 
                                         Part newP = new Part(p.getId(), p);
                                         newP.getPointData().clear();
-                                        p.getPointData().forEach(point ->{
+                                        p.getPointData().forEach(point -> {
                                             TetgenPoint newPoint = new TetgenPoint(point);
                                             newPoint.setY(point.getY() + deltaY);
                                             newPoint.setZ(point.getZ() + deltaZ);
@@ -1349,15 +957,10 @@ public class HomeController implements Initializable {
                                         newP.setAvgNode();
                                         newCell.addChild(newP);
 
-
                                     });
-
-
 
                                     newCell.setYCoordinate(newCell.getYCoordinate() + deltaY);
                                     newCell.setZCoordinate(newCell.getZCoordinate() + deltaZ);
-
-
 
                                     newHistion.addChild(newCell);
                                 });
@@ -1376,7 +979,7 @@ public class HomeController implements Initializable {
 
                                                 Part newP = new Part(p.getId(), p);
                                                 newP.getPointData().clear();
-                                                p.getPointData().forEach(point ->{
+                                                p.getPointData().forEach(point -> {
                                                     TetgenPoint newPoint = new TetgenPoint(point);
                                                     newPoint.setX(point.getX() + deltaX + xShift.get());
                                                     newPoint.setY(point.getY() + deltaY);
@@ -1386,18 +989,11 @@ public class HomeController implements Initializable {
                                                 newP.setAvgNode();
                                                 newCell.addChild(newP);
 
-
                                             });
-
-
 
                                             newCell.setXCoordinate(newCell.getXCoordinate() + deltaX + xShift.get());
                                             newCell.setYCoordinate(newCell.getYCoordinate() + deltaY);
                                             newCell.setZCoordinate(newCell.getZCoordinate() + deltaZ + zShift.get());
-
-
-
-
 
                                             newHist.addChild(newCell);
                                         });
@@ -1419,7 +1015,7 @@ public class HomeController implements Initializable {
 
                                                 Part newP = new Part(p.getId(), p);
                                                 newP.getPointData().clear();
-                                                p.getPointData().forEach(point ->{
+                                                p.getPointData().forEach(point -> {
                                                     TetgenPoint newPoint = new TetgenPoint(point);
                                                     newPoint.setX(point.getX() - deltaX - xShift.get());
                                                     newPoint.setY(point.getY() + deltaY);
@@ -1429,16 +1025,11 @@ public class HomeController implements Initializable {
                                                 newP.setAvgNode();
                                                 newCell.addChild(newP);
 
-
                                             });
-
-
 
                                             newCell.setXCoordinate(newCell.getXCoordinate() - deltaX - xShift.get());
                                             newCell.setYCoordinate(newCell.getYCoordinate() + deltaY);
                                             newCell.setZCoordinate(newCell.getZCoordinate() + deltaZ - zShift.get());
-
-
 
                                             newHist.addChild(newCell);
                                         });
@@ -1464,7 +1055,7 @@ public class HomeController implements Initializable {
 
                                         Part newP = new Part(p.getId(), p);
                                         newP.getPointData().clear();
-                                        p.getPointData().forEach(point ->{
+                                        p.getPointData().forEach(point -> {
                                             TetgenPoint newPoint = new TetgenPoint(point);
                                             newPoint.setY(point.getY() + deltaY);
                                             newPoint.setZ(point.getZ() - deltaZ);
@@ -1473,14 +1064,10 @@ public class HomeController implements Initializable {
                                         newP.setAvgNode();
                                         newCell.addChild(newP);
 
-
                                     });
-
-
 
                                     newCell.setYCoordinate(newCell.getYCoordinate() + deltaY);
                                     newCell.setZCoordinate(newCell.getZCoordinate() - deltaZ);
-
 
                                     newHistion.addChild(newCell);
                                 });
@@ -1498,7 +1085,7 @@ public class HomeController implements Initializable {
 
                                                 Part newP = new Part(p.getId(), p);
                                                 newP.getPointData().clear();
-                                                p.getPointData().forEach(point ->{
+                                                p.getPointData().forEach(point -> {
                                                     TetgenPoint newPoint = new TetgenPoint(point);
                                                     newPoint.setX(point.getX() + deltaX + xShift.get());
                                                     newPoint.setY(point.getY() + deltaY);
@@ -1508,16 +1095,11 @@ public class HomeController implements Initializable {
                                                 newP.setAvgNode();
                                                 newCell.addChild(newP);
 
-
                                             });
-
-
 
                                             newCell.setXCoordinate(newCell.getXCoordinate() + deltaX + xShift.get());
                                             newCell.setYCoordinate(newCell.getYCoordinate() + deltaY);
                                             newCell.setZCoordinate(newCell.getZCoordinate() - deltaZ + zShift.get());
-
-
 
                                             newHist.addChild(newCell);
                                         });
@@ -1539,7 +1121,7 @@ public class HomeController implements Initializable {
 
                                                 Part newP = new Part(p.getId(), p);
                                                 newP.getPointData().clear();
-                                                p.getPointData().forEach(point ->{
+                                                p.getPointData().forEach(point -> {
                                                     TetgenPoint newPoint = new TetgenPoint(point);
                                                     newPoint.setX(point.getX() - deltaX - xShift.get());
                                                     newPoint.setY(point.getY() + deltaY);
@@ -1549,14 +1131,11 @@ public class HomeController implements Initializable {
                                                 newP.setAvgNode();
                                                 newCell.addChild(newP);
 
-
                                             });
-
 
                                             newCell.setXCoordinate(newCell.getXCoordinate() - deltaX - xShift.get());
                                             newCell.setYCoordinate(newCell.getYCoordinate() + deltaY);
                                             newCell.setZCoordinate(newCell.getZCoordinate() - deltaZ - zShift.get());
-
 
                                             newHist.addChild(newCell);
                                         });
@@ -1586,7 +1165,7 @@ public class HomeController implements Initializable {
 
                                         Part newP = new Part(p.getId(), p);
                                         newP.getPointData().clear();
-                                        p.getPointData().forEach(point ->{
+                                        p.getPointData().forEach(point -> {
                                             TetgenPoint newPoint = new TetgenPoint(point);
                                             newPoint.setY(point.getY() - deltaY);
                                             newPoint.setZ(point.getZ() + deltaZ);
@@ -1595,15 +1174,10 @@ public class HomeController implements Initializable {
                                         newP.setAvgNode();
                                         newCell.addChild(newP);
 
-
                                     });
-
-
 
                                     newCell.setYCoordinate(newCell.getYCoordinate() - deltaY);
                                     newCell.setZCoordinate(newCell.getZCoordinate() + deltaZ);
-
-
 
                                     newHistion.addChild(newCell);
                                 });
@@ -1622,7 +1196,7 @@ public class HomeController implements Initializable {
 
                                                 Part newP = new Part(p.getId(), p);
                                                 newP.getPointData().clear();
-                                                p.getPointData().forEach(point ->{
+                                                p.getPointData().forEach(point -> {
                                                     TetgenPoint newPoint = new TetgenPoint(point);
                                                     newPoint.setX(point.getX() + deltaX + xShift.get());
                                                     newPoint.setY(point.getY() - deltaY);
@@ -1632,16 +1206,11 @@ public class HomeController implements Initializable {
                                                 newP.setAvgNode();
                                                 newCell.addChild(newP);
 
-
                                             });
-
-
 
                                             newCell.setXCoordinate(newCell.getXCoordinate() + deltaX + xShift.get());
                                             newCell.setYCoordinate(newCell.getYCoordinate() - deltaY);
                                             newCell.setZCoordinate(newCell.getZCoordinate() + deltaZ + zShift.get());
-
-
 
                                             newHist.addChild(newCell);
                                         });
@@ -1663,7 +1232,7 @@ public class HomeController implements Initializable {
 
                                                 Part newP = new Part(p.getId(), p);
                                                 newP.getPointData().clear();
-                                                p.getPointData().forEach(point ->{
+                                                p.getPointData().forEach(point -> {
                                                     TetgenPoint newPoint = new TetgenPoint(point);
                                                     newPoint.setX(point.getX() - deltaX - xShift.get());
                                                     newPoint.setY(point.getY() - deltaY);
@@ -1673,14 +1242,11 @@ public class HomeController implements Initializable {
                                                 newP.setAvgNode();
                                                 newCell.addChild(newP);
 
-
                                             });
-
 
                                             newCell.setXCoordinate(newCell.getXCoordinate() - deltaX - xShift.get());
                                             newCell.setYCoordinate(newCell.getYCoordinate() - deltaY);
                                             newCell.setZCoordinate(newCell.getZCoordinate() + deltaZ - zShift.get());
-
 
                                             newHist.addChild(newCell);
                                         });
@@ -1708,7 +1274,7 @@ public class HomeController implements Initializable {
 
                                         Part newP = new Part(p.getId(), p);
                                         newP.getPointData().clear();
-                                        p.getPointData().forEach(point ->{
+                                        p.getPointData().forEach(point -> {
                                             TetgenPoint newPoint = new TetgenPoint(point);
                                             newPoint.setY(point.getY() - deltaY);
                                             newPoint.setZ(point.getZ() - deltaZ);
@@ -1717,14 +1283,10 @@ public class HomeController implements Initializable {
                                         newP.setAvgNode();
                                         newCell.addChild(newP);
 
-
                                     });
-
-
 
                                     newCell.setYCoordinate(newCell.getYCoordinate() - deltaY);
                                     newCell.setZCoordinate(newCell.getZCoordinate() - deltaZ);
-
 
                                     newHistion.addChild(newCell);
                                 });
@@ -1743,7 +1305,7 @@ public class HomeController implements Initializable {
 
                                                 Part newP = new Part(p.getId(), p);
                                                 newP.getPointData().clear();
-                                                p.getPointData().forEach(point ->{
+                                                p.getPointData().forEach(point -> {
                                                     TetgenPoint newPoint = new TetgenPoint(point);
                                                     newPoint.setX(point.getX() + deltaX + xShift.get());
                                                     newPoint.setY(point.getY() - deltaY);
@@ -1753,9 +1315,7 @@ public class HomeController implements Initializable {
                                                 newP.setAvgNode();
                                                 newCell.addChild(newP);
 
-
                                             });
-
 
                                             newCell.setXCoordinate(newCell.getXCoordinate() + deltaX + xShift.get());
                                             newCell.setYCoordinate(newCell.getYCoordinate() - deltaY);
@@ -1781,7 +1341,7 @@ public class HomeController implements Initializable {
 
                                                 Part newP = new Part(p.getId(), p);
                                                 newP.getPointData().clear();
-                                                p.getPointData().forEach(point ->{
+                                                p.getPointData().forEach(point -> {
                                                     TetgenPoint newPoint = new TetgenPoint(point);
                                                     newPoint.setX(point.getX() - deltaX - xShift.get());
                                                     newPoint.setY(point.getY() - deltaY);
@@ -1791,14 +1351,11 @@ public class HomeController implements Initializable {
                                                 newP.setAvgNode();
                                                 newCell.addChild(newP);
 
-
                                             });
-
 
                                             newCell.setXCoordinate(newCell.getXCoordinate() - deltaX - xShift.get());
                                             newCell.setYCoordinate(newCell.getYCoordinate() - deltaY);
                                             newCell.setZCoordinate(newCell.getZCoordinate() - deltaZ - zShift.get());
-
 
                                             newHist.addChild(newCell);
                                         });
@@ -1833,7 +1390,7 @@ public class HomeController implements Initializable {
 
                                         Part newP = new Part(p.getId(), p);
                                         newP.getPointData().clear();
-                                        p.getPointData().forEach(point ->{
+                                        p.getPointData().forEach(point -> {
                                             TetgenPoint newPoint = new TetgenPoint(point);
                                             newPoint.setX(point.getX() + deltaX + xShift.get());
                                             newPoint.setY(point.getY() + deltaY);
@@ -1843,14 +1400,11 @@ public class HomeController implements Initializable {
                                         newP.setAvgNode();
                                         newCell.addChild(newP);
 
-
                                     });
-
 
                                     newCell.setXCoordinate(newCell.getXCoordinate() + deltaX + xShift.get());
                                     newCell.setYCoordinate(newCell.getYCoordinate() + deltaY);
                                     newCell.setZCoordinate(newCell.getZCoordinate() + zShift.get());
-
 
                                     newHistion.addChild(newCell);
                                 });
@@ -1870,7 +1424,7 @@ public class HomeController implements Initializable {
 
                                         Part newP = new Part(p.getId(), p);
                                         newP.getPointData().clear();
-                                        p.getPointData().forEach(point ->{
+                                        p.getPointData().forEach(point -> {
                                             TetgenPoint newPoint = new TetgenPoint(point);
                                             newPoint.setX(point.getX() + deltaX + xShift.get());
                                             newPoint.setY(point.getY() - deltaY);
@@ -1880,16 +1434,11 @@ public class HomeController implements Initializable {
                                         newP.setAvgNode();
                                         newCell.addChild(newP);
 
-
                                     });
-
-
 
                                     newCell.setXCoordinate(newCell.getXCoordinate() + deltaX + xShift.get());
                                     newCell.setYCoordinate(newCell.getYCoordinate() - deltaY);
                                     newCell.setZCoordinate(newCell.getZCoordinate() + zShift.get());
-
-
 
                                     newHistion.addChild(newCell);
                                 });
@@ -1916,7 +1465,7 @@ public class HomeController implements Initializable {
 
                                         Part newP = new Part(p.getId(), p);
                                         newP.getPointData().clear();
-                                        p.getPointData().forEach(point ->{
+                                        p.getPointData().forEach(point -> {
                                             TetgenPoint newPoint = new TetgenPoint(point);
                                             newPoint.setX(point.getX() - deltaX - xShift.get());
                                             newPoint.setY(point.getY() + deltaY);
@@ -1926,16 +1475,11 @@ public class HomeController implements Initializable {
                                         newP.setAvgNode();
                                         newCell.addChild(newP);
 
-
                                     });
-
-
 
                                     newCell.setXCoordinate(newCell.getXCoordinate() - deltaX - xShift.get());
                                     newCell.setYCoordinate(newCell.getYCoordinate() + deltaY);
                                     newCell.setZCoordinate(newCell.getZCoordinate() - zShift.get());
-
-
 
                                     newHistion.addChild(newCell);
                                 });
@@ -1955,7 +1499,7 @@ public class HomeController implements Initializable {
 
                                         Part newP = new Part(p.getId(), p);
                                         newP.getPointData().clear();
-                                        p.getPointData().forEach(point ->{
+                                        p.getPointData().forEach(point -> {
                                             TetgenPoint newPoint = new TetgenPoint(point);
                                             newPoint.setX(point.getX() - deltaX - xShift.get());
                                             newPoint.setY(point.getY() - deltaY);
@@ -1965,14 +1509,11 @@ public class HomeController implements Initializable {
                                         newP.setAvgNode();
                                         newCell.addChild(newP);
 
-
                                     });
-
 
                                     newCell.setXCoordinate(newCell.getXCoordinate() - deltaX - xShift.get());
                                     newCell.setYCoordinate(newCell.getYCoordinate() - deltaY);
                                     newCell.setZCoordinate(newCell.getZCoordinate() - zShift.get());
-
 
                                     newHistion.addChild(newCell);
                                 });
@@ -2035,7 +1576,7 @@ public class HomeController implements Initializable {
     }
 
     public class CellTreeItem extends AbstractTreeItem {
-        
+
         ContextMenu cellMenu = new ContextMenu();
 
         public CellTreeItem(HistologyObject<?> object) {
@@ -2251,7 +1792,7 @@ public class HomeController implements Initializable {
             addPart.disableProperty().bind(disableEverything);
             deleteCell.disableProperty().bind(disableEverything);
             copyCell.disableProperty().bind(disableEverything);
-            
+
             cellMenu = new ContextMenu(editCell, saveCell, loadPart, addPart, copyCell, pastePart, deleteCell);
             return cellMenu;
             //return new ContextMenu(editCell, saveCell, loadPart, addPart, copyCell, pastePart, deleteCell);
@@ -2259,7 +1800,7 @@ public class HomeController implements Initializable {
     }
 
     public class PartTreeItem extends AbstractTreeItem {
-        
+
         ContextMenu partMenu = new ContextMenu();
 
         public PartTreeItem(HistologyObject<?> object) {
@@ -2335,7 +1876,7 @@ public class HomeController implements Initializable {
             editPart.disableProperty().bind(disableEverything);
             copyPart.disableProperty().bind(disableEverything);
             deletePart.disableProperty().bind(disableEverything);
-            
+
             partMenu = new ContextMenu(editPart, savePart, copyPart, deletePart);
             return partMenu;
             //return new ContextMenu(editPart, savePart, copyPart, deletePart);
@@ -2425,7 +1966,6 @@ public class HomeController implements Initializable {
                 return new TreeCellImpl();
             }
         });
-
     }
 
     public void setTreeViewSize(int width, int height) {
@@ -2439,178 +1979,6 @@ public class HomeController implements Initializable {
         });
     }
 
-    private static void loadHist(String pathIn){
-        Platform.runLater(() -> {
-//        достаем менеджер *
-            HistionManager hm = Lookup.getDefault().lookup(HistionManager.class);
-            if (hm == null) {
-                LifecycleManager.getDefault().exit();
-            }
-//        очистить предыдущие клетки
-            hm.getHistionMap().get(0).getItems().forEach(c -> {
-                String name = c.getName();
-                Names.removeCellName(name.substring(name.indexOf("<") + 1, name.lastIndexOf(">")));
-                hm.getHistionMap().get(0).deleteChild(c.getId());
-            });
-//        загружаем и добавляем клетки
-            try {
-                Histion main = hm.getHistionMap().get(0);
-                String fileName = pathIn;
-                BufferedReader br = new BufferedReader(new FileReader(fileName));
-                String line = br.readLine();
-
-                line = line.substring(line.indexOf(" ") + 1, line.length());
-                line = line.substring(line.indexOf(" ") + 1, line.length());
-                main.setXCoordinate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                line = line.substring(line.indexOf(" ") + 1, line.length());
-                main.setYCoordinate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                line = line.substring(line.indexOf(" ") + 1, line.length());
-                main.setZCoordinate(Double.parseDouble(line));
-
-                line = br.readLine();
-                RecurrenceShifts.setXShift(Double.parseDouble(line));
-                line = br.readLine();
-                RecurrenceShifts.setZShift(Double.parseDouble(line));
-
-                line = br.readLine();
-                int cellNum = Integer.parseInt(line);
-                for (int i = 0; i < cellNum; i++) {
-                    ObservableList<ArrayList<Integer>> facetData = FXCollections.observableArrayList();
-                    Cell c = new Cell("Name", 0, 0, 0, 0, 0, FXCollections.observableArrayList(),
-                            Color.BLUE, Color.LIGHTBLUE, 0, true);
-                    double r, g, b;
-                    line = br.readLine();
-
-                    String name = line;
-                    name = name.substring(name.indexOf("<") + 1, name.lastIndexOf(">"));
-                    int count = 1;
-                    while (Names.containsCellName(name)) {
-                        name = line;
-                        name = name.substring(name.indexOf("<") + 1, name.lastIndexOf(">"));
-                        name += "(" + count + ")";
-                        count++;
-                    }
-                    c.setName("Клетка <" + name + ">");
-
-                    line = br.readLine();
-                    c.setXRotate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    c.setYRotate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    c.setXCoordinate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    c.setYCoordinate(Double.parseDouble(line.substring(0, line.indexOf(" "))));
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    c.setZCoordinate(Double.parseDouble(line));
-
-                    line = br.readLine();
-                    r = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    g = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    b = Double.parseDouble(line);
-                    c.setDiffuseColor(Color.color(r, g, b));
-
-                    line = br.readLine();
-                    r = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    g = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                    line = line.substring(line.indexOf(" ") + 1, line.length());
-                    b = Double.parseDouble(line);
-                    c.setSpecularColor(Color.color(r, g, b));
-
-                    line = br.readLine();
-                    c.setShow(Boolean.parseBoolean(line));
-
-                    line = br.readLine();
-                    int partNum = Integer.parseInt(line);
-
-                    ArrayList<TetgenPoint> pd = new ArrayList<>();
-                    int num = 1;
-                    for (int j = 0; j < partNum; j++) {
-                        ObservableList<TetgenPoint> pointData = FXCollections.observableArrayList();
-                        Part p = new Part("Part", FXCollections.observableArrayList(), c.getId());
-                        line = br.readLine();
-                        //p.setName(line);
-
-                        name = line;
-                        name = name.substring(name.indexOf("<") + 1, name.lastIndexOf(">"));
-                        p.setName("Слой <" + name + ">");
-
-                        line = br.readLine();
-                        int pointNum = Integer.parseInt(line);
-                        for (int q = 0; q < pointNum; q++) {
-                            line = br.readLine();
-                            r = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                            line = line.substring(line.indexOf(" ") + 1, line.length());
-                            g = Double.parseDouble(line.substring(0, line.indexOf(" ")));
-                            line = line.substring(line.indexOf(" ") + 1, line.length());
-                            b = Double.parseDouble(line);
-                            pointData.add(new TetgenPoint(q + 1, r, g, b));
-                            pd.add(new TetgenPoint(num, r, g, b));
-                            num++;
-                        }
-                        p.setPointData(pointData);
-                        p.setAvgNode();
-                        c.addChild(p);
-                    }
-                    line = br.readLine();
-                    int facetNum = Integer.parseInt(line);
-                    for (int j = 0; j < facetNum; j++) {
-                        ArrayList<Integer> list = new ArrayList<>();
-                        line = br.readLine();
-                        while (line.contains(" ")) {
-                            list.add(Integer.parseInt(line.substring(0, line.indexOf(" "))));
-                            line = line.substring(line.indexOf(" ") + 1, line.length());
-                        }
-                        list.add(Integer.parseInt(line));
-                        facetData.add(list);
-                    }
-                    c.setFacetData(facetData);
-
-                    ArrayList<TwoIntegers> lineList = new ArrayList<>();
-                    for (ArrayList<Integer> f : facetData) {
-                        for (int j = 1; j < f.size(); j++) {
-                            TwoIntegers ti = new TwoIntegers(j, f.get(j - 1), f.get(j));
-                            if (!lineList.contains(ti)) {
-                                lineList.add(ti);
-                            }
-                        }
-                        TwoIntegers ti = new TwoIntegers(f.size(), f.get(f.size() - 1), f.get(0));
-                        if (!lineList.contains(ti)) {
-                            lineList.add(ti);
-                        }
-                    }
-
-                    ArrayList<Line> lines = new ArrayList<>();
-                    for (int j = 0; j < lineList.size(); j++) {
-
-                        TetgenPoint point1 = pd.get(lineList.get(j).getPoint1() - 1);
-                        TetgenPoint point2 = pd.get(lineList.get(j).getPoint2() - 1);
-                        if (Math.abs(point1.getY() - point2.getY()) < 0.0001) {
-                            lines.add(new Line(new org.spbu.histology.model.Node(point1.getX(), point1.getZ(), point1.getY()),
-                                    new org.spbu.histology.model.Node(point2.getX(), point2.getZ(), point2.getY())));
-                        }
-                    }
-                    LineEquations.addLine(c.getId(), lines);
-
-                    main.addChild(c);
-                    name = c.getName();
-                    Names.addCellName(name.substring(name.indexOf("<") + 1, name.lastIndexOf(">")));
-                }
-                br.close();
-            } catch (Exception ex) {
-                System.out.println("error");
-            }
-
-
-        });
-    }
-
-
-    private String userDirectory = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + "\\HistologyApp" + System.getProperty("sun.arch.data.model");
-    //System.out.println(userDirectoryString);
-
     @ActionID(
             category = "Edit",
             id = "org.spbu.histology.menu.AB3"
@@ -2618,16 +1986,12 @@ public class HomeController implements Initializable {
     @ActionRegistration(
             displayName = "#CTL_AB3"
     )
-
     @ActionReference(path = "Menu/3D MODELS/Triangular", position = 1, separatorAfter = 20)
     @NbBundle.Messages("CTL_AB3=Triangle+1 vertex (AB3)")
     public static final class AB3 implements ActionListener {
-        private String userDirectory = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + "\\HistologyApp" + System.getProperty("sun.arch.data.model");
-
-
         @Override
         public void actionPerformed(ActionEvent e) {
-            loadHist(userDirectory +"\\Histions\\Triangle+1 vertex (AB3).txt");
+            LoadModelService.displayImportedModel("Triangle+1 vertex (AB3).txt");
         }
     }
 
@@ -2638,16 +2002,12 @@ public class HomeController implements Initializable {
     @ActionRegistration(
             displayName = "#CTL_AB6C2"
     )
-
     @ActionReference(path = "Menu/3D MODELS/Triangular", position = 2)
     @NbBundle.Messages("CTL_AB6C2=Triangle+1 vertex` (AB6C2)")
     public static final class AB6C2 implements ActionListener {
-        private String userDirectory = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + "\\HistologyApp" + System.getProperty("sun.arch.data.model");
-
-
         @Override
         public void actionPerformed(ActionEvent e) {
-            loadHist(userDirectory +"\\Histions\\Triangle+1 vertex` (AB6C2).txt");
+            LoadModelService.displayImportedModel("Triangle+1 vertex` (AB6C2).txt");
         }
     }
 
@@ -2662,12 +2022,10 @@ public class HomeController implements Initializable {
     @ActionReference(path = "Menu/3D MODELS/Triangular", position = 3)
     @NbBundle.Messages("CTL_AB6C21=Triangle+1 vertex`` (AB6C2)")
     public static final class AB6C21 implements ActionListener {
-        private String userDirectory = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + "\\HistologyApp" + System.getProperty("sun.arch.data.model");
-
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            loadHist(userDirectory +"\\Histions\\Triangle+1 vertex`` (AB6C2).txt");
+            LoadModelService.displayImportedModel("Triangle+1 vertex`` (AB6C2).txt");
         }
     }
 
@@ -2682,12 +2040,9 @@ public class HomeController implements Initializable {
     @ActionReference(path = "Menu/3D MODELS/Triangular", position = 21)
     @NbBundle.Messages("CTL_A3B=Triangle+1 slit (A3B)")
     public static final class A3B implements ActionListener {
-        private String userDirectory = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + "\\HistologyApp" + System.getProperty("sun.arch.data.model");
-
-
         @Override
         public void actionPerformed(ActionEvent e) {
-            loadHist(userDirectory +"\\Histions\\Triangle+1 slit (A3B).txt");
+            LoadModelService.displayImportedModel("Triangle+1 slit (A3B).txt");
         }
     }
 
@@ -2702,14 +2057,10 @@ public class HomeController implements Initializable {
     @ActionReference(path = "Menu/3D MODELS/Triangular", position = 22)
     @NbBundle.Messages("CTL_AB2=Triangle+1 slit` (AB2`)")
     public static final class AB2 implements ActionListener {
-        private String userDirectory = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + "\\HistologyApp" + System.getProperty("sun.arch.data.model");
-
-
         @Override
         public void actionPerformed(ActionEvent e) {
-            loadHist(userDirectory +"\\Histions\\Triangle+1 slit` (AB2`).txt");
+            LoadModelService.displayImportedModel("Triangle+1 slit` (AB2`).txt");
         }
     }
-
 
 }

@@ -1,11 +1,11 @@
 package org.spbu.histology.model;
 
-import java.util.concurrent.ConcurrentHashMap;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.collections.ObservableMap;
+import javafx.collections.*;
+
+import java.util.Comparator;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class HistologyObject<T extends HistologyObject<?>> {
 
@@ -47,9 +47,8 @@ public abstract class HistologyObject<T extends HistologyObject<?>> {
 
     public ObservableList<T> getItems() {
         ObservableList<T> copyList = FXCollections.observableArrayList();
-        itemMap.values().stream().forEach(s
-                -> copyList.add(s));
-        return copyList.sorted((i1, i2) -> Integer.compare(i1.getId(), i2.getId()));
+        copyList.addAll(itemMap.values());
+        return copyList.sorted(Comparator.comparingInt(i -> i.getId()));
     }
 
     public abstract void addChild(T obj);

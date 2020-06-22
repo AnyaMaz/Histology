@@ -1,13 +1,6 @@
 package org.spbu.histology.shape.information;
 
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -17,11 +10,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.fxml.JavaFXBuilderFactory;
 import javafx.geometry.Point3D;
-import javafx.scene.Group;
-import javafx.scene.Parent;
-import javafx.scene.PerspectiveCamera;
-import javafx.scene.SceneAntialiasing;
-import javafx.scene.SubScene;
+import javafx.scene.*;
 import javafx.scene.control.Tab;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.PickResult;
@@ -36,11 +25,13 @@ import javafx.scene.transform.Rotate;
 import org.openide.LifecycleManager;
 import org.openide.util.Lookup;
 import org.spbu.histology.fxyz.Line3D;
-import org.spbu.histology.model.Cell;
-import org.spbu.histology.model.DigitMeshes;
-import org.spbu.histology.model.HistionManager;
-import org.spbu.histology.model.TetgenPoint;
-import org.spbu.histology.model.TwoIntegers;
+import org.spbu.histology.model.*;
+
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class MainController implements Initializable {
 
@@ -78,6 +69,8 @@ public class MainController implements Initializable {
     private final ArrayList<Point3D> linePointsList = new ArrayList<>();
     private final ArrayList<Integer> indexList = new ArrayList<>();
 
+    private final Group axisGroup = new Group();
+
     public void setCell(Cell c) {
         facetData = c.getFacetData();
 
@@ -101,6 +94,7 @@ public class MainController implements Initializable {
 
     private void createScene() {
         root.getChildren().add(shapeGroup);
+        root.getChildren().add(axisGroup);
         scene = new SubScene(root, 1200, 800, true, SceneAntialiasing.BALANCED);
         scene.setFill(Color.WHITE);
 

@@ -7,7 +7,7 @@ import javafx.collections.ObservableMap;
 public class Part extends HistologyObject<HistologyObject<?>> {
 
     private static Integer count = 0;
-    private ObservableList<TetgenPoint> pointData = FXCollections.observableArrayList();
+        private ObservableList<TetgenPoint> pointData = FXCollections.observableArrayList();
 
     public Part(String name, ObservableList<TetgenPoint> pointData, Integer cellId) {
         super(count++, name);

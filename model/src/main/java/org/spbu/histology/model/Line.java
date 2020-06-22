@@ -21,4 +21,15 @@ public class Line {
             k = 0;
         }
     }
-};
+
+    @Override
+    public String toString() {
+        return "Line{" +
+                "p1=" + p1 +
+                ", p2=" + p2 +
+                ", k=" + k +
+                ", b=" + b +
+                ", vert=" + vert +
+                '}';
+    }
+}

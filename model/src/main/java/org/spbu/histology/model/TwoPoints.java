@@ -36,4 +36,12 @@ public class TwoPoints {
                 && tp.p2.equals(p1));
     }
 
+
+    @Override
+    public String toString() {
+        return "TwoPoints{" +
+                "p1=" + p1 +
+                ", p2=" + p2 +
+                '}';
+    }
 }

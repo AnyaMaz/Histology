@@ -35,4 +35,12 @@ public class Node {
                 && Math.abs(node.z - z) < 0.000001;
     }
 
+    @Override
+    public String toString() {
+        return "Node{" +
+                "x=" + x +
+                ", y=" + y +
+                ", z=" + z +
+                '}';
+    }
 }

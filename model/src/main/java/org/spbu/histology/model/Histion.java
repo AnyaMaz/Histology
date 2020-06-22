@@ -1,9 +1,6 @@
 package org.spbu.histology.model;
 
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.*;
 
 public class Histion extends HistologyObject<Cell> {
 
@@ -79,7 +76,7 @@ public class Histion extends HistologyObject<Cell> {
     public final void setZCoordinate(double zCoordinate) {
         this.zCoordinateProperty().set(zCoordinate);
     }
-    
+
     public Node getPointAvg() {
         return nodeAvg;
     }
@@ -106,6 +103,6 @@ public class Histion extends HistologyObject<Cell> {
 
     @Override
     public void deleteChild(Integer id) {
-        getItemMap().remove(id);
+            getItemMap().remove(id);
     }
 }

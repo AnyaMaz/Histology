@@ -103,8 +103,8 @@ public abstract class TriangulationPoint extends Point
 
     public int hashCode()
     {
-        long bits = java.lang.Double.doubleToLongBits(getX());
-        bits ^= java.lang.Double.doubleToLongBits(getY()) * 31;
+        long bits = Double.doubleToLongBits(getX());
+        bits ^= Double.doubleToLongBits(getY()) * 31;
         return (((int) bits) ^ ((int) (bits >> 32)));
     }
 

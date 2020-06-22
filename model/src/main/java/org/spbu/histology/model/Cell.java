@@ -7,6 +7,8 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.EventDispatchChain;
+import javafx.event.EventTarget;
 import javafx.scene.paint.Color;
 
 public class Cell extends HistologyObject<Part> {
@@ -235,5 +237,23 @@ public class Cell extends HistologyObject<Part> {
     @Override
     public void deleteChild(Integer id) {
         getItemMap().remove(id);
+    }
+
+    @Override
+    public String toString() {
+        return "Cell{" +
+                "xRotate=" + xRotate +
+                ", yRotate=" + yRotate +
+                ", xCoordinate=" + xCoordinate +
+                ", yCoordinate=" + yCoordinate +
+                ", zCoordinate=" + zCoordinate +
+                ", facetData=" + facetData +
+                ", diffuseColor=" + diffuseColor +
+                ", specularColor=" + specularColor +
+                ", histionId=" + histionId +
+                ", show=" + show +
+                ", oneShow=" + oneShow +
+                ", transformedPointData=" + transformedPointData +
+                '}';
     }
 }

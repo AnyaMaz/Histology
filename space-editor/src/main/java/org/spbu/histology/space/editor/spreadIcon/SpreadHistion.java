@@ -5,6 +5,7 @@ import org.openide.awt.ActionID;
 import org.openide.awt.ActionReference;
 import org.openide.awt.ActionRegistration;
 import org.openide.util.NbBundle.Messages;
+import org.spbu.histology.space.editor.AfterStartUpActions;
 import org.spbu.histology.space.editor.HomeController;
 import org.spbu.histology.toolbar.ChosenTool;
 
@@ -27,10 +28,7 @@ public class SpreadHistion extends HomeController implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         ChosenTool.setToolNumber(4);
-        Platform.runLater(() -> {
-            new SpreadHistionMethod().view();
-        });
-
+        Platform.runLater(() -> new SpreadHistionService().spread(true));
     }
 
 }

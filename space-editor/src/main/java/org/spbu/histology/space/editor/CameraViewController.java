@@ -16,7 +16,7 @@ import javafx.scene.layout.VBox;
 public class CameraViewController implements Initializable  {
     
     @FXML
-    private VBox vBox;
+    public VBox vBox;
     
     @FXML
     private Label xRotationLabel;

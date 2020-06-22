@@ -1,21 +1,19 @@
 package org.spbu.histology.shape.information;
 
-import java.net.URL;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.JavaFXBuilderFactory;
+import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import org.openide.LifecycleManager;
@@ -23,17 +21,23 @@ import org.openide.util.Lookup;
 import org.spbu.histology.model.HistionManager;
 import org.spbu.histology.model.TetgenPoint;
 
+
+import java.net.URL;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 public class PartInformationInitialization {
-    
+
+    private final static int width = 1200;
+    private final static int height = 800;
+
     public static void show(Integer cellId, Integer partId) {
-        
+
         HistionManager hm = Lookup.getDefault().lookup(HistionManager.class);
         if (hm == null) {
             LifecycleManager.getDefault().exit();
         }
-        
-        final int width = 1200;
-        final int height = 800;
+
         Stage primaryStage = new Stage();
         primaryStage.getIcons().add(new Image(CellInformationInitialization.class.getResourceAsStream("hexagon.png")));
         primaryStage.setTitle("Слой");
@@ -49,16 +53,16 @@ public class PartInformationInitialization {
             fxmlLoader.setLocation(location);
             fxmlLoader.setBuilderFactory(new JavaFXBuilderFactory());
 
-            leftPart = (Parent)fxmlLoader.load(location.openStream());
-            pointTabController = (PointTabController)fxmlLoader.getController();
+            leftPart = (Parent) fxmlLoader.load(location.openStream());
+            pointTabController = (PointTabController) fxmlLoader.getController();
             pointTabController.setRectangleList(rectangleList);
             pointTabController.setCount(count);
             if (partId == -1)
                 pointTabController.setInitialSize(0);
             else
                 pointTabController.setInitialSize(hm.getHistionMap().get(0).
-                    getItemMap().get(cellId).getItemMap().get(partId).getPointData().size());
-            pointTabController.setIds(cellId, partId);       
+                        getItemMap().get(cellId).getItemMap().get(partId).getPointData().size());
+            pointTabController.setIds(cellId, partId);
         } catch (Exception ex) {
             Logger.getLogger(PartInformationInitialization.class.getName()).log(Level.SEVERE, null, ex);
             return;
@@ -91,8 +95,8 @@ public class PartInformationInitialization {
         }
         axes.setOnMousePressed((MouseEvent e) -> {
             if (e.isPrimaryButtonDown()) {
-                int xPos = (int)e.getX();
-                int yPos = (int)e.getY();
+                int xPos = (int) e.getX();
+                int yPos = (int) e.getY();
                 if (xPos >= 0 && xPos <= width && yPos >= 0 && yPos <= height) {
                     Rectangle r = new Rectangle();
                     r.setX(xPos - 2);
@@ -112,5 +116,80 @@ public class PartInformationInitialization {
             pointTabController.setTableHeight(primaryStage.getHeight() - 120);
         });
         primaryStage.show();
+    }
+
+    public static void pointControllerForBookcaseBuilder() {
+        Stage primaryStage = new Stage();
+        primaryStage.getIcons().add(new Image(CellInformationInitialization.class.getResourceAsStream("hexagon.png")));
+        primaryStage.setTitle("Слой");
+        BorderPane borderPane = new BorderPane();
+        Group root = new Group();
+        Parent leftPart;
+        PointTabController pointTabController;
+        ObservableList<Rectangle> rectangleList = FXCollections.observableArrayList();
+        IntegerProperty count = new SimpleIntegerProperty(1);
+        try {
+            URL location = PartInformationInitialization.class.getResource("PointTab.fxml");
+            FXMLLoader fxmlLoader = new FXMLLoader();
+            fxmlLoader.setLocation(location);
+            fxmlLoader.setBuilderFactory(new JavaFXBuilderFactory());
+
+            leftPart = fxmlLoader.load(location.openStream());
+            pointTabController = fxmlLoader.getController();
+            pointTabController.setRectangleList(rectangleList);
+            pointTabController.setCount(count);
+            pointTabController.setInitialSize(0);
+
+        } catch (Exception ex) {
+            Logger.getLogger(PartInformationInitialization.class.getName()).log(Level.SEVERE, null, ex);
+            return;
+        }
+        borderPane.setCenter(root);
+        borderPane.setLeft(leftPart);
+        Axes axes = new Axes(
+                width, height,
+                -100, 100, 10,
+                -100, 100, 10
+        );
+        pointTabController.setPaneSize(1200, 800);
+        axes.setStyle("-fx-background-color: white");
+        root.getChildren().add(axes);
+        pointTabController.setRoot(root);
+        Scene scene = new Scene(borderPane);
+        primaryStage.setScene(scene);
+
+
+        axes.setOnMousePressed((MouseEvent e) -> {
+            if (e.isPrimaryButtonDown()) {
+                int xPos = (int) e.getX();
+                int yPos = (int) e.getY();
+                if (xPos >= 0 && xPos <= width && yPos >= 0 && yPos <= height) {
+                    Rectangle r = new Rectangle();
+                    r.setX(xPos - 2);
+                    r.setY(yPos - 2);
+                    r.setWidth(5);
+                    r.setHeight(5);
+                    root.getChildren().add(r);
+                    rectangleList.add(r);
+                    TetgenPoint p = new TetgenPoint(count.get(), xPos - width / 2, 0, -yPos + height / 2);
+                    pointTabController.addPoint(p);
+                    count.set(count.get() + 1);
+                }
+            }
+        });
+
+        primaryStage.heightProperty().addListener((obs, oldVal, newVal) -> {
+            pointTabController.setTableHeight(primaryStage.getHeight() - 120);
+        });
+
+        Button proceedBtn = new Button("Продолжить");
+        proceedBtn.setAlignment(Pos.BOTTOM_CENTER);
+        pointTabController.root.getChildren().add(proceedBtn);
+
+        proceedBtn.setOnMouseClicked(click -> {
+            pointTabController.getData().forEach(System.out::println);
+        });
+
+        primaryStage.showAndWait();
     }
 }

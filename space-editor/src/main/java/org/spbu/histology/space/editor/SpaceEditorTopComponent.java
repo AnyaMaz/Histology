@@ -1,11 +1,13 @@
 package org.spbu.histology.space.editor;
 
 import org.spbu.histology.toolbar.ChosenTool;
+
 import java.awt.BorderLayout;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.IOException;
 import java.net.URL;
+
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.embed.swing.JFXPanel;
@@ -39,9 +41,9 @@ import org.openide.util.NbBundle.Messages;
         preferredID = "SpaceEditorTopComponent"
 )
 @Messages({
-    "CTL_ToolsAction=SpaceEditor",
-    "CTL_ToolsTopComponent=SpaceEditor Window",
-    "HINT_ToolsTopComponent=This is a SpaceEditor window"
+        "CTL_ToolsAction=SpaceEditor",
+        "CTL_ToolsTopComponent=SpaceEditor Window",
+        "HINT_ToolsTopComponent=This is a SpaceEditor window"
 })
 public final class SpaceEditorTopComponent extends TopComponent {
 
@@ -55,7 +57,6 @@ public final class SpaceEditorTopComponent extends TopComponent {
         initComponents();
         setName(Bundle.CTL_ToolsTopComponent());
         setToolTipText(Bundle.HINT_ToolsTopComponent());
-
         setLayout(new BorderLayout());
         init();
     }
@@ -192,12 +193,12 @@ public final class SpaceEditorTopComponent extends TopComponent {
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 400, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 300, Short.MAX_VALUE)
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -206,7 +207,7 @@ public final class SpaceEditorTopComponent extends TopComponent {
     @Override
     public void componentOpened() {
         addToolBarListener(cl);
-        // TODO add custom code on component opening
+        Platform.runLater(AfterStartUpActions::displayChoiceWindow);
     }
 
     @Override

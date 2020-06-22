@@ -8,21 +8,13 @@ import javafx.concurrent.Task;
 import javafx.embed.swing.JFXPanel;
 import javafx.event.EventHandler;
 import javafx.geometry.Point3D;
-import javafx.scene.Group;
-import javafx.scene.PerspectiveCamera;
-import javafx.scene.Scene;
-import javafx.scene.SceneAntialiasing;
+import javafx.scene.*;
 import javafx.scene.control.Alert;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.ScrollEvent;
+import javafx.scene.input.*;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
-import javafx.scene.shape.Box;
-import javafx.scene.shape.DrawMode;
 import javafx.scene.shape.Line;
-import javafx.scene.shape.MeshView;
-import javafx.scene.shape.TriangleMesh;
+import javafx.scene.shape.*;
 import javafx.scene.transform.Affine;
 import javafx.scene.transform.Rotate;
 import org.netbeans.api.settings.ConvertAsProperties;
@@ -34,19 +26,15 @@ import org.openide.util.NbBundle.Messages;
 import org.openide.windows.TopComponent;
 import org.spbu.histology.fxyz.Line3D;
 import org.spbu.histology.fxyz.Text3DMesh;
-import org.spbu.histology.menu.ChosenMenuItem;
+import org.spbu.histology.model.Node;
 import org.spbu.histology.model.*;
 import org.spbu.histology.tetgen.Tetgen;
 import org.spbu.histology.tetgen.TetgenResult;
-import org.spbu.histology.util.AlertBox;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
+import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Top component which displays something.
@@ -75,7 +63,7 @@ import java.util.concurrent.Executors;
 
 public class OneSpaceViewerTopComponent extends TopComponent {
 
-    private HistionManager hm = null;
+    private HistionManager histionManager = null;
 
     private final Group axisGroup = new Group();
 
@@ -137,10 +125,8 @@ public class OneSpaceViewerTopComponent extends TopComponent {
         alert.setTitle(answ);
         alert.setHeaderText("Results:");
         alert.setContentText("Ok");
-
         alert.showAndWait();
     }
-
 
     private final ObservableMap<Integer, List<TwoPoints>> nodesMap
             = FXCollections.observableMap(new ConcurrentHashMap());
@@ -150,63 +136,64 @@ public class OneSpaceViewerTopComponent extends TopComponent {
         alert.setTitle("Check");
         alert.setHeaderText("Results:");
         alert.setContentText("Ok");
-
         alert.showAndWait();
     }
 
     private final MapChangeListener<Integer, Cell> cellListener
             = (change) -> {
-                if (change.wasRemoved() && change.wasAdded()) {
-                    Cell c = (Cell) change.getValueAdded();
-                    Cell removedShape = (Cell) change.getValueRemoved();
-                    if (c.getOneShow()) {
-                        if (hm.getShapeMap().get(removedShape.getId()) != null) {
-                            shapeGroup.getChildren().remove(hm.getShapeMap().get(removedShape.getId()));
-                            for (Line3D l : lineMap.get(removedShape.getId())) {
-                                shapeGroup.getChildren().remove(l.getMeshView());
-                            }
-                        }
-                        addCell(c);
-                    }else if (!c.getOneShow() && removedShape.getOneShow()) {
-                        Integer removedCellId = removedShape.getId();
-                        shapeGroup.getChildren().remove(hm.getShapeMap().get(removedCellId));
-                        for (Line3D l : lineMap.get(removedCellId)) {
-                            shapeGroup.getChildren().remove(l.getMeshView());
-                        }
-                        lineMap.remove(removedCellId);
-                        hm.getShapeMap().remove(removedCellId);
-                        nodesList.remove(removedCellId);
-                        nodesListTemp.remove(removedCellId);
-                        nodesListRotated.remove(removedCellId);
-                        tetrahedronsList.remove(removedCellId);
-                        colorsList.remove(removedCellId);
+        if (change.wasRemoved() && change.wasAdded()) {
+            Cell c = (Cell) change.getValueAdded();
+            Cell removedShape = (Cell) change.getValueRemoved();
+            if (c.getOneShow()) {
+                if (histionManager.getShapeMap().get(removedShape.getId()) != null) {
+                    shapeGroup.getChildren().remove(histionManager.getShapeMap().get(removedShape.getId()));
+                    for (Line3D l : lineMap.get(removedShape.getId())) {
+                        shapeGroup.getChildren().remove(l.getMeshView());
+                    }
+                }
+                addCell(c);
+            } else if (!c.getOneShow() && removedShape.getOneShow()) {
+                Integer removedCellId = removedShape.getId();
+                shapeGroup.getChildren().remove(histionManager.getShapeMap().get(removedCellId));
+                for (Line3D l : lineMap.get(removedCellId)) {
+                    shapeGroup.getChildren().remove(l.getMeshView());
+                }
+                lineMap.remove(removedCellId);
+                histionManager.getShapeMap().remove(removedCellId);
+                nodesList.remove(removedCellId);
+                nodesListTemp.remove(removedCellId);
+                nodesListRotated.remove(removedCellId);
+                tetrahedronsList.remove(removedCellId);
+                colorsList.remove(removedCellId);
 
-                        nodesMap.remove(removedCellId);
+                nodesMap.remove(removedCellId);
+            }
+        } else if (change.wasRemoved()) {
+            Cell removedCell = (Cell) change.getValueRemoved();
+            if (removedCell.getOneShow() || removedCell.getShow()) {
+                Integer removedCellId = removedCell.getId();
+                shapeGroup.getChildren().remove(histionManager.getShapeMap().get(removedCellId));
+                ArrayList<Line3D> lines = lineMap.get(removedCellId);
+                if (lines != null) {
+                    for (Line3D l : lines) {
+                        shapeGroup.getChildren().remove(l.getMeshView());
                     }
                 }
-                else if (change.wasRemoved()) {
-                    Cell removedCell = (Cell) change.getValueRemoved();
-                    if (removedCell.getOneShow() || removedCell.getShow()) {
-                        Integer removedCellId = removedCell.getId();
-                        shapeGroup.getChildren().remove(hm.getShapeMap().get(removedCellId));
-                        for (Line3D l : lineMap.get(removedCellId)) {
-                            shapeGroup.getChildren().remove(l.getMeshView());
-                        }
-                        lineMap.remove(removedCellId);
-                        //hm.getShapeMap().remove(removedCellId);
-                        nodesList.remove(removedCellId);
-                        nodesListTemp.remove(removedCellId);
-                        nodesListRotated.remove(removedCellId);
-                        tetrahedronsList.remove(removedCellId);
-                        colorsList.remove(removedCellId);
-                        nodesMap.remove(removedCellId);
-                    }
-                } else if (change.wasAdded()) {
-                    Cell addedCell = (Cell) change.getValueAdded();
-                    if (addedCell.getOneShow()) {
-                        addCell(addedCell);
-                    }
-                }
+                lineMap.remove(removedCellId);
+                //hm.getShapeMap().remove(removedCellId);
+                nodesList.remove(removedCellId);
+                nodesListTemp.remove(removedCellId);
+                nodesListRotated.remove(removedCellId);
+                tetrahedronsList.remove(removedCellId);
+                colorsList.remove(removedCellId);
+                nodesMap.remove(removedCellId);
+            }
+        } else if (change.wasAdded()) {
+            Cell addedCell = (Cell) change.getValueAdded();
+            if (addedCell.getOneShow()) {
+                addCell(addedCell);
+            }
+        }
     };
 
     private final MapChangeListener<Integer, Histion> histionListener = (change) -> {
@@ -227,7 +214,6 @@ public class OneSpaceViewerTopComponent extends TopComponent {
         initComponents();
         setName(Bundle.CTL_OneSpaceViewerTopComponent());
         setToolTipText(Bundle.HINT_OneSpaceViewerTopComponent());
-
         setLayout(new BorderLayout());
         init();
     }
@@ -255,6 +241,8 @@ public class OneSpaceViewerTopComponent extends TopComponent {
     }
 
     private void createScene(JFXPanel fxPanel) {
+        shapeGroup.getChildren().add(new AmbientLight());
+        root.getChildren().add(new AmbientLight());
         root.getChildren().add(shapeGroup);
         Scene scene = new Scene(root, 1000, 1000, true, SceneAntialiasing.BALANCED);
 
@@ -270,7 +258,7 @@ public class OneSpaceViewerTopComponent extends TopComponent {
         addRotateTransformsToGroup();
     }
 
-    private void addPolygon(ArrayList<javafx.scene.shape.Line> lineList, ArrayList<Node> pl, ArrayList<javafx.scene.shape.Polygon> polList, Integer id) {
+    private void addPolygon(ArrayList<Line> lineList, ArrayList<Node> pl, ArrayList<javafx.scene.shape.Polygon> polList, Integer id) {
         Double[] polPoints = new Double[pl.size() * 2];
         int k = 0;
         for (int i = 0; i < pl.size(); i++) {
@@ -278,7 +266,7 @@ public class OneSpaceViewerTopComponent extends TopComponent {
             polPoints[k + 1] = pl.get(i).z;
             k += 2;
             if (i != pl.size() - 1) {
-                javafx.scene.shape.Line line = new javafx.scene.shape.Line();
+                Line line = new Line();
 
                 line.setStartX(pl.get(i).x);
                 line.setStartY(pl.get(i).z);
@@ -286,7 +274,7 @@ public class OneSpaceViewerTopComponent extends TopComponent {
                 line.setEndY(pl.get(i + 1).z);
                 lineList.add(line);
             } else {
-                javafx.scene.shape.Line line = new javafx.scene.shape.Line();
+                Line line = new Line();
 
                 line.setStartX(pl.get(i).x);
                 line.setStartY(pl.get(i).z);
@@ -336,7 +324,6 @@ public class OneSpaceViewerTopComponent extends TopComponent {
                 lineList.remove(0);
             }
         }
-
         addPolygon(lList, pl, polList, id);
     }
 
@@ -608,7 +595,7 @@ public class OneSpaceViewerTopComponent extends TopComponent {
 
         dataSize = 0;
         nodeAvg = new Point3D(0, 0, 0);
-        hm.getHistionMap().get(c.getHistionId()).getItemMap().get(c.getId()).getItems().forEach(p -> {
+        histionManager.getHistionMap().get(c.getHistionId()).getItemMap().get(c.getId()).getItems().forEach(p -> {
             for (TetgenPoint point : p.getPointData()) {
                 pointData.add(new TetgenPoint(point));
                 nodeAvg = new Point3D(nodeAvg.getX() + point.getX(), nodeAvg.getY() + point.getY(), nodeAvg.getZ() + point.getZ());
@@ -697,7 +684,6 @@ public class OneSpaceViewerTopComponent extends TopComponent {
 //            AlertBox.display("Ошибка", "Клетка не может быть создана");
 //            return;
 //        }
-
         nodesList.put(c.getId(), new double[tr.getNodeList().length]);
         nodesListTemp.put(c.getId(), new double[tr.getNodeList().length]);
         nodesListRotated.put(c.getId(), new double[tr.getNodeList().length]);
@@ -960,16 +946,16 @@ public class OneSpaceViewerTopComponent extends TopComponent {
             return new Task() {
                 @Override
                 protected Void call() throws Exception {
-                    hm.getAllHistions().forEach(h -> {
+                    histionManager.getAllHistions().forEach(h -> {
                         h.getItems().forEach(c -> {
                             if (c.getOneShow()) {
                                 for (int i = 0; i < nodesList.get(c.getId()).length; i += 3) {
                                     /*double x = nodesList.get(c.getId())[i] - hm.getHistionMap().get(0).getPointAvg().x;
                                     double y = nodesList.get(c.getId())[i + 1] - hm.getHistionMap().get(0).getPointAvg().y;
                                     double z = nodesList.get(c.getId())[i + 2] - hm.getHistionMap().get(0).getPointAvg().z;*/
-                                    double x = nodesListRotated.get(c.getId())[i] - hm.getHistionMap().get(0).getPointAvg().x;
-                                    double y = nodesListRotated.get(c.getId())[i + 1] - hm.getHistionMap().get(0).getPointAvg().y;
-                                    double z = nodesListRotated.get(c.getId())[i + 2] - hm.getHistionMap().get(0).getPointAvg().z;
+                                    double x = nodesListRotated.get(c.getId())[i] - histionManager.getHistionMap().get(0).getPointAvg().x;
+                                    double y = nodesListRotated.get(c.getId())[i + 1] - histionManager.getHistionMap().get(0).getPointAvg().y;
+                                    double z = nodesListRotated.get(c.getId())[i + 2] - histionManager.getHistionMap().get(0).getPointAvg().z;
 
                                     double tempVal = x;
                                     x = x * angYCos - z * angYSin;
@@ -983,9 +969,9 @@ public class OneSpaceViewerTopComponent extends TopComponent {
                                     x = x * angZCos - y * angZSin;
                                     y = tempVal * angZSin + y * angZCos;
 
-                                    nodesListRotated.get(c.getId())[i] = x + hm.getHistionMap().get(0).getPointAvg().x;
-                                    nodesListRotated.get(c.getId())[i + 1] = y + hm.getHistionMap().get(0).getPointAvg().y;
-                                    nodesListRotated.get(c.getId())[i + 2] = z + hm.getHistionMap().get(0).getPointAvg().z;
+                                    nodesListRotated.get(c.getId())[i] = x + histionManager.getHistionMap().get(0).getPointAvg().x;
+                                    nodesListRotated.get(c.getId())[i + 1] = y + histionManager.getHistionMap().get(0).getPointAvg().y;
+                                    nodesListRotated.get(c.getId())[i + 2] = z + histionManager.getHistionMap().get(0).getPointAvg().z;
 
                                     nodesList.get(c.getId())[i] = nodesListRotated.get(c.getId())[i]
                                             + Double.parseDouble(GroupPosition.getXCoordinate());
@@ -1014,8 +1000,6 @@ public class OneSpaceViewerTopComponent extends TopComponent {
             };
         }
     };
-
-
 
     double mouseDeltaX;
     double mouseDeltaY;
@@ -1074,9 +1058,9 @@ public class OneSpaceViewerTopComponent extends TopComponent {
                 mouseDeltaX = (mousePosX - mouseOldX);
                 mouseDeltaY = (mousePosY - mouseOldY);
 
-                addRotation(-mouseDeltaX * 0.15, Rotate.Y_AXIS, hm.getHistionMap().get(0).getPointAvg());
-                addRotation(mouseDeltaY * 0.15 * Math.cos(Math.toRadians(rotateYCam.getAngle())), Rotate.X_AXIS, hm.getHistionMap().get(0).getPointAvg());
-                addRotation(-mouseDeltaY * 0.15 * Math.sin(Math.toRadians(rotateYCam.getAngle())), Rotate.Z_AXIS, hm.getHistionMap().get(0).getPointAvg());
+                addRotation(-mouseDeltaX * 0.15, Rotate.Y_AXIS, histionManager.getHistionMap().get(0).getPointAvg());
+                addRotation(mouseDeltaY * 0.15 * Math.cos(Math.toRadians(rotateYCam.getAngle())), Rotate.X_AXIS, histionManager.getHistionMap().get(0).getPointAvg());
+                addRotation(-mouseDeltaY * 0.15 * Math.sin(Math.toRadians(rotateYCam.getAngle())), Rotate.Z_AXIS, histionManager.getHistionMap().get(0).getPointAvg());
 
                 angX += -mouseDeltaY * 0.15 * Math.cos(Math.toRadians(rotateYCam.getAngle()));
                 angY += mouseDeltaX * 0.15;
@@ -1353,40 +1337,108 @@ public class OneSpaceViewerTopComponent extends TopComponent {
         }
     };
 
-    ListChangeListener<Integer> hideShapeListChangeListener = (change) -> {
+    private ListChangeListener<Integer> hideShapeListChangeListener = (change) -> {
         while (change.next()) {
             if (change.wasAdded()) {
                 for (Integer id : change.getAddedSubList()) {
-                    hm.getAllHistions().forEach(h -> {
-                        h.getItems().forEach(c -> {
-                            if (c.getId() == id) {
-                                c.setOneShow(true);
-                                shapeGroup.getChildren().add(hm.getShapeMap().get(c.getId()));
-                                for (Line3D l : lineMap.get(c.getId())) {
-                                    shapeGroup.getChildren().add(l.getMeshView());
-                                }
-                            }
-                        });
-                    });
+                    histionManager.getAllHistions().forEach(histion -> histion.getItems()
+                            .stream()
+                            .filter(cell -> cell.getId().equals(id))
+                            .forEach(this::drawSelectedCell));
                 }
             } else {
                 for (Integer id : change.getRemoved()) {
-                    hm.getAllHistions().forEach(h -> {
-                        h.getItems().forEach(c -> {
-                            if (c.getId() == id) {
-                                c.setOneShow(false);
-                                Integer removedCellId = c.getId();
-                                shapeGroup.getChildren().remove(hm.getShapeMap().get(removedCellId));
-                                for (Line3D l : lineMap.get(removedCellId)) {
-                                    shapeGroup.getChildren().remove(l.getMeshView());
-                                }
-                            }
-                        });
-                    });
+                    histionManager.getAllHistions().forEach(histion -> histion.getItems()
+                            .stream()
+                            .filter(cell -> cell.getId().equals(id))
+                            .forEach(this::removeUnselectedCell));
                 }
             }
         }
     };
+
+    private void removeUnselectedCell(Cell cell) {
+        cell.setOneShow(false);
+        Integer removedCellId = cell.getId();
+        shapeGroup.getChildren().remove(histionManager.getShapeMap().get(removedCellId));
+        if (lineMap.get(removedCellId) == null) {
+            return;
+        }
+        lineMap.get(removedCellId).stream().filter(Objects::nonNull).forEachOrdered((l) -> {
+            shapeGroup.getChildren().remove(l.getMeshView());
+        });
+    }
+
+    private static final float WIDTH = 3;
+
+    private void drawSelectedCell(Cell cell) {
+        cell.setOneShow(true);
+        shapeGroup.getChildren().add(histionManager.getShapeMap().get(cell.getId()));
+        drawEdgesFor(cell);
+    }
+
+    private void drawEdgesFor(Cell cell) {
+        ObservableList<TetgenPoint> pointData = FXCollections.observableArrayList();
+        histionManager.getHistionMap()
+                .get(cell.getHistionId())
+                .getItemMap()
+                .get(cell.getId())
+                .getItems()
+                .forEach(p -> p.getPointData()
+                        .forEach((point) -> {
+                            pointData.add(new TetgenPoint(point));
+                        }));
+
+        ArrayList<Point3D> linePointsList = new ArrayList<>();
+        ArrayList<TwoIntegers> lineData = new ArrayList<>();
+        ArrayList<Line3D> lineList = new ArrayList<>();
+
+        for (ArrayList<Integer> f : cell.getFacetData()) {
+            for (int i = 1; i < f.size(); i++) {
+                TwoIntegers ti = new TwoIntegers(0, f.get(i - 1), f.get(i));
+                if (!lineData.contains(ti)) {
+                    linePointsList.add(new Point3D(pointData.get(ti.getPoint1() - 1).getX(),
+                            pointData.get(ti.getPoint1() - 1).getY(),
+                            pointData.get(ti.getPoint1() - 1).getZ()));
+                    linePointsList.add(new Point3D(pointData.get(ti.getPoint2() - 1).getX(),
+                            pointData.get(ti.getPoint2() - 1).getY(),
+                            pointData.get(ti.getPoint2() - 1).getZ()));
+
+                    lineData.add(ti);
+
+                } else {
+                    if (linePointsList.size() > 0) {
+                        Line3D line = new Line3D(linePointsList, WIDTH, Color.BLACK);
+                        lineList.add(line);
+                        shapeGroup.getChildren().add(line.getMeshView());
+                        linePointsList.clear();
+                    }
+                }
+            }
+
+            TwoIntegers ti = new TwoIntegers(0, f.get(f.size() - 1), f.get(0));
+            if (!lineData.contains(ti)) {
+                linePointsList.add(new Point3D(pointData.get(ti.getPoint1() - 1).getX(),
+                        pointData.get(ti.getPoint1() - 1).getY(),
+                        pointData.get(ti.getPoint1() - 1).getZ()));
+                linePointsList.add(new Point3D(pointData.get(ti.getPoint2() - 1).getX(),
+                        pointData.get(ti.getPoint2() - 1).getY(),
+                        pointData.get(ti.getPoint2() - 1).getZ()));
+                Line3D line = new Line3D(linePointsList, WIDTH, Color.BLACK);
+                lineList.add(line);
+                shapeGroup.getChildren().add(line.getMeshView());
+            } else {
+                if (linePointsList.size() > 0) {
+                    Line3D line = new Line3D(linePointsList, WIDTH, Color.BLACK);
+                    lineList.add(line);
+                    shapeGroup.getChildren().add(line.getMeshView());
+                }
+            }
+            linePointsList.clear();
+        }
+
+        lineMap.put(cell.getId(), lineList);
+    }
 
     private void addCameraViewListener() {
         CameraView.xRotateProperty().addListener(xRotListener);
@@ -1454,15 +1506,16 @@ public class OneSpaceViewerTopComponent extends TopComponent {
             CrossSectionPlane.setChanged(false);
         }
     };
-/*
-    ChangeListener<Boolean> updateListener = (v, oldValue, newValue) -> {
-        if (newValue) {
-            if (!processCrossSection.isRunning()) {
-                processCrossSection.restart();
+
+    /*
+        ChangeListener<Boolean> updateListener = (v, oldValue, newValue) -> {
+            if (newValue) {
+                if (!processCrossSection.isRunning()) {
+                    processCrossSection.restart();
+                }
             }
-        }
-    };*/
-/*
+        };*/
+ /*
     private void addCrossSectionListener() {
         processCrossSection.setExecutor(Executors.newFixedThreadPool(1, runnable -> {
             Thread t = new Thread(runnable);
@@ -1473,7 +1526,7 @@ public class OneSpaceViewerTopComponent extends TopComponent {
         CrossSectionPlane.changedProperty().addListener(changeListener);
         CrossSectionPlane.initialized.addListener(updateListener);
     }
-*/
+     */
     private void removeCrossSectionListener() {
         CrossSectionPlane.opaquenessProperty().removeListener(opaquenessListener);
         CrossSectionPlane.changedProperty().removeListener(changeListener);
@@ -1515,7 +1568,8 @@ public class OneSpaceViewerTopComponent extends TopComponent {
 
         }
     };
-/*
+
+    /*
     ChangeListener<Integer> menuItemChangeListener = (v, oldValue, newValue) -> { //ВЫБОР МЕНЮШКИ 1-10
         Platform.runLater(() -> {
             if (newValue == 11) {
@@ -1634,7 +1688,7 @@ public class OneSpaceViewerTopComponent extends TopComponent {
             }
         });
     };
-*/
+     */
 
     private void addGroupPositionListener() {
         GroupPosition.xCoordinateProperty().addListener(groupXPosListener);
@@ -1654,14 +1708,14 @@ public class OneSpaceViewerTopComponent extends TopComponent {
         //addCrossSectionListener();
         addGroupPositionListener();
         //addMenuItemListener(menuItemChangeListener);
-        hm = Lookup.getDefault().lookup(HistionManager.class);
-        if (hm == null) {
+        histionManager = Lookup.getDefault().lookup(HistionManager.class);
+        if (histionManager == null) {
             LifecycleManager.getDefault().exit();
         }
-        hm.getAllHistions().forEach(h -> {
+        histionManager.getAllHistions().forEach(h -> {
             h.getItemMap().addListener(cellListener);
         });
-        hm.addListener(histionListener);
+        histionManager.addListener(histionListener);
 
     }
 
@@ -1671,21 +1725,21 @@ public class OneSpaceViewerTopComponent extends TopComponent {
         removeCrossSectionListener();
         removeGroupPositionListener();
         //removeMenuItemListener(menuItemChangeListener);
-        hm.getAllHistions().forEach(h -> {
+        histionManager.getAllHistions().forEach(h -> {
             h.getItemMap().removeListener(cellListener);
         });
-        hm.removeListener(histionListener);
+        histionManager.removeListener(histionListener);
         // TODO add custom code on component closing
     }
 
-    void writeProperties(java.util.Properties p) {
+    void writeProperties(Properties p) {
         // better to version settings since initial version as advocated at
         // http://wiki.apidesign.org/wiki/PropertyFiles
         p.setProperty("version", "1.0");
         // TODO store your settings
     }
 
-    void readProperties(java.util.Properties p) {
+    void readProperties(Properties p) {
         String version = p.getProperty("version");
         // TODO read your settings according to their version
     }

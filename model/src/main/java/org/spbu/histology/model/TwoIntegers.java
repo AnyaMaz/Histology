@@ -8,6 +8,15 @@ public class TwoIntegers {
     private final SimpleIntegerProperty point1;
     private final SimpleIntegerProperty point2;
 
+    @Override
+    public String toString() {
+        return "TwoIntegers{" +
+                "id=" + id +
+                ", point1=" + point1 +
+                ", point2=" + point2 +
+                '}';
+    }
+
     public TwoIntegers(int id, int p1, int p2) {
         this.id = new SimpleIntegerProperty(id);
         this.point1 = new SimpleIntegerProperty(p1);

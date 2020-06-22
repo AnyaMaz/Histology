@@ -63,10 +63,7 @@ public class HistionManagerImpl implements HistionManager {
 
     @Override
     public List<Histion> getAllHistions() {
-        List<Histion> copyList = new ArrayList<>();
-        observableMap.values().stream().forEach(s
-                -> copyList.add(s));
-        return copyList;
+        return new ArrayList<>(observableMap.values());
     }
 
     @Override

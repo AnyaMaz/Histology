@@ -26,10 +26,7 @@ public class CleanSpread implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         ChosenTool.setToolNumber(5);
-        Platform.runLater(() -> {
-            new CleanSpreadMethod().clean();
-        });
-
+        Platform.runLater(() -> new CleanSpreadMethod().clean());
     }
 
 }

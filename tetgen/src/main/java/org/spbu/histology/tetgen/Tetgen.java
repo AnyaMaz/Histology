@@ -13,9 +13,6 @@ public class Tetgen {
     static {
         try {
             String dir = FileSystemView.getFileSystemView().getDefaultDirectory().getPath();
-            /*for (int i = 0; i < 3; i++)
-                dir = dir.substring(0, dir.lastIndexOf('\\'));
-            dir = dir + "\\tetgen\\src\\main\\resources\\org\\spbu\\histology\\tetgen";*/
             dir = dir + "\\HistologyApp" + System.getProperty("sun.arch.data.model") + "\\Tetgen\\";
             System.load(dir + "\\Tetgen.dll");
         } catch (Exception e) {

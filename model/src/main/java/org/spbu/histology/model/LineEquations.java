@@ -2,6 +2,7 @@ package org.spbu.histology.model;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableMap;
 

@@ -1,11 +1,6 @@
 package org.spbu.histology.model;
 
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
+import javafx.beans.property.*;
 
 public class CrossSectionPlane {
 
@@ -99,7 +94,7 @@ public class CrossSectionPlane {
     }
 
     public static void setCrossSection(String xRotate, String yRotate,
-            String xCoordinate, String yCoordinate, String zCoordinate) {
+                                       String xCoordinate, String yCoordinate, String zCoordinate) {
         xRotateProperty().set(xRotate);
         yRotateProperty().set(yRotate);
         xCoordinateProperty().set(xCoordinate);
@@ -242,7 +237,7 @@ public class CrossSectionPlane {
             p1.z += zPos;
             p2.z += zPos;
             p3.z += zPos;
-            
+
             double A = ((p2.y - p1.y) * (p3.z - p1.z) - (p3.y - p1.y) * (p2.z - p1.z));
             double B = -((p2.x - p1.x) * (p3.z - p1.z) - (p3.x - p1.x) * (p2.z - p1.z));
             double C = ((p2.x - p1.x) * (p3.y - p1.y) - (p3.x - p1.x) * (p2.y - p1.y));
@@ -260,7 +255,6 @@ public class CrossSectionPlane {
                 setD(D);
                 setChanged(true);
             }
-
         } catch (Exception ex) {
 
         }
