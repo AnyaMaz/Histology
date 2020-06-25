@@ -476,7 +476,73 @@ public class ChooseModelService extends HomeController {
     private static List<Line> newConnections = new ArrayList<>();
 
     private static void topologicalPrimitiveNumber1() {
+        System.out.println("Search for topological primitive #1");
 
+        for (Map.Entry<Circle, List<Line>> e : injected.entrySet()) {
+            Circle oneCell = e.getKey();
+            List<Line> oneLines = e.getValue();
+            List<Point2D> onePoints = new ArrayList<>();
+
+            oneLines.forEach(line -> onePoints.add(new Point2D(line.getStartX(), line.getStartY())));
+
+            for (Map.Entry<Circle, List<Line>> entry : injected.entrySet()) {
+                Circle anotherCell = entry.getKey();
+                List<Line> anotherList = entry.getValue();
+                if (!oneCell.equals(anotherCell)) {
+                    List<Point2D> anotherPoints = new ArrayList<>();
+
+                    anotherList.forEach(line -> anotherPoints.add(new Point2D(line.getStartX(), line.getStartY())));
+
+                    List<Point2D> commonDots = onePoints.stream()
+                            .filter(anotherPoints::contains)
+                            .collect(Collectors.toList());
+
+                    if (commonDots.size() == 2) {
+
+                        Polygon p = null;
+
+                        for (ArrayList<Polygon> value : CrossSectionVisualization.getPolygonMap().values()) {
+                            if (!value.isEmpty()) {
+                                p = value.get(0);
+                            }
+                        }
+
+
+                        Point2D point1 = p.parentToLocal(commonDots.get(0));
+                        Point2D point2 = p.parentToLocal(commonDots.get(1));
+
+
+                        for (Line line : graphEdges) {
+
+                            if ((Math.abs(line.getStartX() - point1.getX()) < 0.01 && Math.abs(line.getStartY() - point1.getY()) < 0.01) &&
+                                    (Math.abs(line.getEndX() - point2.getX()) < 0.01 && Math.abs(line.getEndY() - point2.getY()) < 0.01)) {
+                                standGroup.getChildren().remove(line);
+                            }
+
+                            if ((Math.abs(line.getStartX() - point2.getX()) < 0.01 && Math.abs(line.getStartY() - point2.getY()) < 0.01) &&
+                                    (Math.abs(line.getEndX() - point1.getX()) < 0.01 && Math.abs(line.getEndY() - point1.getY()) < 0.01)) {
+                                standGroup.getChildren().remove(line);
+                            }
+
+
+                        }
+
+
+                        Line newConnection = new Line(oneCell.getCenterX()
+                                , oneCell.getCenterY()
+                                , anotherCell.getCenterX()
+                                , anotherCell.getCenterY());
+
+                        newConnection.setStrokeWidth(2f);
+
+                        newConnections.add(newConnection);
+
+                        standGroup.getChildren().add(newConnection);
+                    }
+
+                }
+            }
+        }
     }
 
     private static void topologicalPrimitiveNumber3() {
